@@ -12,7 +12,6 @@
 
     <title>{{ $title ?? config('app.name', 'ISP Auto-PSB') }}</title>
 
-    <!-- Tailwind CSS CDN, TomSelect & Alpine.js -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.4.3/dist/css/tom-select.default.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.4.3/dist/js/tom-select.complete.min.js"></script>
@@ -23,7 +22,6 @@
             display: none !important;
         }
 
-        /* High-contrast Ocean Blue keyboard focus indicator (R-32, >= 3:1 contrast) */
         a:focus-visible,
         button:focus-visible,
         input:focus-visible,
@@ -33,14 +31,13 @@
             outline-offset: 2px !important;
         }
 
-        /* Ensure focused inputs on mobile have breathing room above virtual keyboard */
+        /* Keep focused mobile inputs above the on-screen virtual keyboard. */
         input,
         select,
         textarea {
             scroll-margin-bottom: 6rem;
         }
 
-        /* Ocean Blue styling for TomSelect searchable ODP dropdown */
         .ts-wrapper.single .ts-control {
             background: #FFFFFF !important;
             border: 1.5px solid #5B82A6 !important;
@@ -81,6 +78,7 @@
 
         .ts-dropdown .option {
             padding: 0.65rem 0.875rem !important;
+            min-height: 44px !important;
             color: #06233B !important;
             border-bottom: 1px solid #E2EEF8;
         }

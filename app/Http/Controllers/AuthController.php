@@ -13,9 +13,6 @@ use Illuminate\View\View;
 
 class AuthController extends Controller
 {
-    /**
-     * Display the mobile-first login page.
-     */
     public function showLogin(): View|RedirectResponse
     {
         if (Auth::check()) {
@@ -25,9 +22,6 @@ class AuthController extends Controller
         return view('auth.login');
     }
 
-    /**
-     * Authenticate user using username & password, enforcing is_active === true and remember = true.
-     */
     public function login(LoginRequest $request): RedirectResponse
     {
         $credentials = $request->validated();
@@ -43,13 +37,14 @@ class AuthController extends Controller
                 ]);
         }
 
+        // Force remember-me token so field technicians remain signed in on mobile devices.
         $attemptSuccess = Auth::attempt(
             [
                 'username' => $username,
                 'password' => $credentials['password'],
                 'is_active' => true,
             ],
-            true // Always remember so technicians stay logged in on their phones
+            true
         );
 
         if (! $attemptSuccess) {
@@ -65,9 +60,6 @@ class AuthController extends Controller
         return redirect()->intended(route('psb.create'));
     }
 
-    /**
-     * Log the user out of the application.
-     */
     public function logout(Request $request): RedirectResponse
     {
         Auth::logout();

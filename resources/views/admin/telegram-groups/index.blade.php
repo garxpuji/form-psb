@@ -1,28 +1,27 @@
 @extends('layouts.admin', ['title' => 'Master Grup Telegram'])
 
 @section('content')
-<div class="space-y-5" x-data="{ editingGroup: null }">
+<div class="space-y-4 sm:space-y-5" x-data="{ editingGroup: null }">
     <div class="rounded-2xl border-[1.5px] border-[#5B82A6] bg-white p-4 shadow-sm sm:p-5">
         <div class="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
             <div>
-                <h1 class="text-lg font-extrabold text-[#06233B] sm:text-xl">Master Grup Telegram PSB</h1>
+                <h1 class="text-[clamp(1.125rem,2vw,1.35rem)] font-extrabold text-[#06233B]">Master Grup Telegram PSB</h1>
                 <p class="mt-0.5 text-xs font-medium text-[#2C5270]">
-                    Konfigurasi 1 grup <code class="rounded bg-[#FEF3C7] px-1.5 py-0.5 font-mono font-bold text-[#78350F]">ALL TEAM PSB (is_all_team = true)</code> dan grup khusus tim (<code class="rounded bg-[#D1FAE5] px-1.5 py-0.5 font-mono font-bold text-[#065F46]">TEAM 1 s/d TEAM 4</code>).
+                    Atur 1 grup utama <code class="rounded bg-[#FEF3C7] px-1.5 py-0.5 font-mono font-bold text-[#78350F]">ALL TEAM PSB (is_all_team = true)</code> dan grup khusus tiap tim teknisi (<code class="rounded bg-[#D1FAE5] px-1.5 py-0.5 font-mono font-bold text-[#065F46]">TEAM 1 s/d TEAM 4</code>).
                 </p>
             </div>
 
             <div class="rounded-xl border border-[#0284C7] bg-[#E0F2FE] px-4 py-2.5 text-xs text-[#075985]">
-                <div class="font-bold">Helper Webhook /cekid:</div>
+                <div class="font-bold">Cara Cek Chat ID & Thread ID dari Grup:</div>
                 <div class="mt-0.5">
-                    Endpoint: <code class="font-mono font-bold">{{ url('/api/telegram/webhook') }}</code> (Ketik <code class="font-mono font-bold">/cekid</code> di grup untuk melihat ID).
+                    Arahkan webhook bot ke <code class="font-mono font-bold">{{ url('/api/telegram/webhook') }}</code> lalu kirim pesan <code class="font-mono font-bold">/cekid</code> di grup Telegram.
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="grid grid-cols-1 gap-5 xl:grid-cols-12 xl:items-start">
-        <!-- Create Form (4 Columns on Desktop) -->
-        <div class="rounded-2xl border-[1.5px] border-[#5B82A6] bg-white p-5 shadow-sm xl:col-span-4">
+    <div class="grid grid-cols-1 gap-4 sm:gap-5 xl:grid-cols-12 xl:items-start">
+        <div class="rounded-2xl border-[1.5px] border-[#5B82A6] bg-white p-4 shadow-sm sm:p-5 xl:col-span-4">
             <h2 class="text-base font-extrabold text-[#06233B]">Tambah Grup Telegram</h2>
             <form method="POST" action="{{ route('admin.telegram-groups.store') }}" class="mt-4 space-y-4">
                 @csrf
@@ -51,7 +50,7 @@
                     <input
                         type="number"
                         name="thread_id"
-                        placeholder="Kosongkan jika grup tidak memakai Topics"
+                        placeholder="Kosongkan jika grup tidak memakai fitur Topics"
                         class="mt-1 block min-h-[44px] w-full rounded-lg border-[1.5px] border-[#5B82A6] bg-white px-3 py-2 font-mono text-sm font-bold text-[#06233B] placeholder-[#2C5270]/70">
                 </div>
 
@@ -62,19 +61,18 @@
                             name="is_all_team"
                             value="1"
                             class="h-4 w-4 rounded border-[#5B82A6] text-[#005F99]">
-                        <span>Set sebagai Grup Utama ALL TEAM PSB</span>
+                        <span>Jadikan Grup Utama ALL TEAM PSB</span>
                     </label>
                 </div>
 
                 <button
                     type="submit"
-                    class="flex min-h-[46px] w-full items-center justify-center rounded-xl bg-[#005F99] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#054A78]">
+                    class="flex min-h-[46px] w-full items-center justify-center rounded-xl bg-[#005F99] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#054A78] active:bg-[#043A5E]">
                     Simpan Grup Telegram
                 </button>
             </form>
         </div>
 
-        <!-- Groups Table (8 Columns on Desktop) -->
         <div class="overflow-hidden rounded-2xl border-[1.5px] border-[#5B82A6] bg-white shadow-sm xl:col-span-8">
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-[#B8D4EC] text-left text-sm">
@@ -97,7 +95,7 @@
                             <td class="px-4 py-3">
                                 @if ($group->is_all_team)
                                 <span class="inline-flex rounded-md border border-[#D97706] bg-[#FEF3C7] px-2.5 py-0.5 font-mono text-xs font-bold text-[#78350F]">
-                                    ALL TEAM PSB (Fallback Non-Tim)
+                                    ALL TEAM PSB (Non-Tim)
                                 </span>
                                 @else
                                 <span class="inline-flex rounded-md border border-[#059669] bg-[#D1FAE5] px-2.5 py-0.5 font-mono text-xs font-bold text-[#065F46]">
@@ -105,13 +103,13 @@
                                 </span>
                                 @endif
                             </td>
-                            <td class="px-4 py-3 font-mono text-xs font-bold text-[#06233B]">{{ $group->users_count }} user</td>
+                            <td class="px-4 py-3 font-mono text-xs font-bold text-[#06233B]">{{ $group->users_count }} akun</td>
                             <td class="whitespace-nowrap px-4 py-3 text-right text-xs">
                                 <div class="inline-flex items-center gap-2">
                                     <button
                                         type="button"
                                         @click="editingGroup = @js($group)"
-                                        class="inline-flex min-h-[40px] items-center rounded-lg border-[1.5px] border-[#5B82A6] bg-[#EDF5FC] px-3 py-1.5 font-bold text-[#06233B] hover:bg-[#E0F2FE]">
+                                        class="inline-flex min-h-[44px] items-center rounded-lg border-[1.5px] border-[#5B82A6] bg-[#EDF5FC] px-3 py-2 font-bold text-[#06233B] hover:bg-[#E0F2FE]">
                                         Edit
                                     </button>
                                     @if (! $group->is_all_team)
@@ -124,7 +122,7 @@
                                         @method('DELETE')
                                         <button
                                             type="submit"
-                                            class="inline-flex min-h-[40px] items-center rounded-lg border border-[#DC2626] bg-[#FEE2E2] px-3 py-1.5 font-bold text-[#991B1B] hover:bg-[#FECACA]">
+                                            class="inline-flex min-h-[44px] items-center rounded-lg border border-[#DC2626] bg-[#FEE2E2] px-3 py-2 font-bold text-[#991B1B] hover:bg-[#FECACA]">
                                             Hapus
                                         </button>
                                     </form>
@@ -145,7 +143,6 @@
         </div>
     </div>
 
-    <!-- Edit Modal -->
     <div
         x-show="editingGroup !== null"
         x-cloak
@@ -154,7 +151,7 @@
         role="dialog"
         aria-modal="true">
         <template x-if="editingGroup">
-            <div class="w-full max-w-md rounded-2xl border-2 border-[#005F99] bg-white p-6 shadow-2xl">
+            <div class="w-full max-w-md rounded-2xl border-2 border-[#005F99] bg-white p-5 shadow-2xl sm:p-6">
                 <h3 class="text-base font-extrabold text-[#06233B]" x-text="'Edit Grup: ' + editingGroup.nama_grup"></h3>
                 <form method="POST" :action="'/admin/telegram-groups/' + editingGroup.id" class="mt-4 space-y-4">
                     @csrf

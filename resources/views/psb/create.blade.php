@@ -1,4 +1,4 @@
-@extends('layouts.app', ['title' => 'Form Pemasangan Baru (PSB) - ISP Auto-PSB'])
+@extends('layouts.app', ['title' => 'Formulir Pasang Baru (PSB) - ISP Auto-PSB'])
 
 @section('content')
 @php
@@ -23,7 +23,7 @@ $s->id => [
 @endphp
 
 <div
-    class="min-h-screen pb-16"
+    class="min-h-screen pb-14"
     x-data="psbFormApp({
         userName: @js($user->name),
         isNonTeam: @js($isNonTeam),
@@ -32,6 +32,7 @@ $s->id => [
         salesMap: @js($salesMap),
         initialNama: @js((string) old('nama_pelanggan', '')),
         initialAlamat: @js((string) old('alamat', '')),
+        initialShareloc: @js((string) old('shareloc', '')),
         initialNoTlp: @js((string) old('no_tlp', '')),
         initialOdpId: @js((string) old('odp_id', '')),
         initialPort: @js((string) old('port', '')),
@@ -46,9 +47,8 @@ $s->id => [
         hasResultModal: @js($psbResult !== null),
         resultCopyValue: @js((string) ($psbResult['raw_poe_ip'] ?? $psbResult['hasil_poe_ip'] ?? '')),
     })">
-    <!-- Top Ocean Navy Operational Header Bar -->
     <header class="border-b border-[#124670] bg-[#072A47] text-white">
-        <div class="mx-auto flex w-full max-w-[1600px] flex-wrap items-center justify-between gap-3 px-4 py-3.5 sm:px-6 lg:px-8">
+        <div class="mx-auto flex w-full max-w-[1600px] flex-wrap items-center justify-between gap-3 px-3.5 py-3 sm:px-6 lg:px-8">
             <div class="flex items-center gap-3">
                 <span class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[#7DD3FC] bg-[#005F99] font-mono text-xs font-extrabold text-white">
                     PSB
@@ -61,7 +61,7 @@ $s->id => [
                         </span>
                     </div>
                     <div class="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-[#BAE6FD]">
-                        <span>Grup Laporan Telegram:</span>
+                        <span>Tujuan laporan Telegram:</span>
                         @if (! $isNonTeam && $targetGroup)
                         <span class="inline-flex items-center rounded bg-[#D1FAE5] px-2 py-0.5 font-mono text-[11px] font-bold text-[#065F46]">
                             {{ $targetGroup->nama_grup }}
@@ -75,11 +75,11 @@ $s->id => [
                 </div>
             </div>
 
-            <div class="flex items-center gap-2.5">
+            <div class="flex items-center gap-2">
                 @if ($user->isAdmin())
                 <a
                     href="{{ route('admin.dashboard') }}"
-                    class="inline-flex min-h-[44px] items-center rounded-lg border border-[#7DD3FC] bg-[#005F99] px-3.5 py-2 text-xs font-bold text-white transition hover:bg-[#054A78]">
+                    class="inline-flex min-h-[44px] items-center rounded-lg border border-[#7DD3FC] bg-[#005F99] px-3.5 py-2 text-xs font-bold text-white transition hover:bg-[#054A78] active:bg-[#043A5E]">
                     Panel Admin NOC
                 </a>
                 @endif
@@ -88,7 +88,7 @@ $s->id => [
                     @csrf
                     <button
                         type="submit"
-                        class="inline-flex min-h-[44px] items-center rounded-lg border border-[#7DD3FC]/70 bg-[#0B3B63] px-3.5 py-2 text-xs font-bold text-white transition hover:bg-[#991B1B]">
+                        class="inline-flex min-h-[44px] items-center rounded-lg border border-[#7DD3FC]/70 bg-[#0B3B63] px-3.5 py-2 text-xs font-bold text-white transition hover:bg-[#991B1B] active:bg-[#7F1D1D]">
                         Keluar
                     </button>
                 </form>
@@ -96,12 +96,10 @@ $s->id => [
         </div>
     </header>
 
-    <!-- Main Fluid Workspace Container (Phone: 1 col, Tablet: 2 col, Desktop: 12-col split) -->
-    <main class="mx-auto w-full max-w-[1600px] px-4 pt-5 sm:px-6 lg:px-8">
-        <!-- Validation Error Banner -->
+    <main class="mx-auto w-full max-w-[1600px] px-3.5 pt-4 sm:px-6 sm:pt-5 lg:px-8">
         @if ($errors->any())
-        <div class="mb-5 rounded-xl border-2 border-[#DC2626] bg-[#FEE2E2] p-4 text-xs text-[#991B1B]" role="alert">
-            <div class="font-bold">Mohon periksa kembali input form PSB berikut:</div>
+        <div class="mb-4 rounded-xl border-2 border-[#DC2626] bg-[#FEE2E2] p-3.5 text-xs text-[#991B1B]" role="alert">
+            <div class="font-bold">Periksa kembali isian formulir PSB berikut:</div>
             <ul class="mt-1.5 list-inside list-disc space-y-1 font-medium">
                 @foreach ($errors->all() as $error)
                 <li>{{ $error }}</li>
@@ -110,23 +108,21 @@ $s->id => [
         </div>
         @endif
 
-        <div class="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:items-start">
-            <!-- Left 8 Columns on Desktop: Multi-Panel PSB Form -->
+        <div class="grid grid-cols-1 gap-5 lg:grid-cols-12 lg:items-start">
             <form
                 method="POST"
                 action="{{ route('psb.store') }}"
+                enctype="multipart/form-data"
                 @submit="handleFormSubmit($event)"
-                class="space-y-5 lg:col-span-8"
+                class="space-y-4 sm:space-y-5 lg:col-span-8"
                 novalidate>
                 @csrf
 
-                <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
-                    <!-- Panel 1: Data Pelanggan & Tim Lapangan -->
-                    <section class="flex flex-col justify-between rounded-2xl border-[1.5px] border-[#5B82A6] bg-white p-5 shadow-sm">
+                <div class="grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-2">
+                    <section class="flex flex-col justify-between rounded-2xl border-[1.5px] border-[#5B82A6] bg-white p-4 shadow-sm sm:p-5">
                         <div class="space-y-4">
-                            <div class="border-b border-[#B8D4EC] pb-3">
-                                <span class="font-mono text-xs font-bold uppercase text-[#005F99]">Bagian 01</span>
-                                <h2 class="text-base font-extrabold text-[#06233B]">Data Pelanggan & Sales</h2>
+                            <div class="border-b border-[#B8D4EC] pb-2.5">
+                                <h2 class="text-[clamp(1rem,1.6vw,1.125rem)] font-extrabold text-[#06233B]">Data Pelanggan, Alamat & Shareloc</h2>
                             </div>
 
                             <div>
@@ -165,24 +161,51 @@ $s->id => [
                                 <textarea
                                     id="alamat"
                                     name="alamat"
-                                    rows="3"
+                                    rows="2"
                                     x-model="alamat"
                                     required
-                                    placeholder="Alamat lengkap lokasi instalasi pelanggan"
+                                    placeholder="Tulis alamat rumah atau lokasi pemasangan"
                                     class="mt-1.5 block w-full rounded-lg border-[1.5px] border-[#5B82A6] bg-white px-3.5 py-2.5 text-sm font-medium text-[#06233B] placeholder-[#2C5270]/70"></textarea>
+                            </div>
+
+                            <div class="rounded-xl border border-[#5B82A6] bg-[#EDF5FC] p-3.5">
+                                <div class="flex flex-wrap items-center justify-between gap-2">
+                                    <label for="shareloc" class="block text-xs font-bold uppercase tracking-wider text-[#06233B]">
+                                        Link Shareloc / Koordinat Lokasi <span class="text-[#991B1B]">*</span>
+                                    </label>
+                                    <button
+                                        type="button"
+                                        @click="fetchCurrentGpsLocation()"
+                                        :disabled="fetchingGps"
+                                        class="inline-flex min-h-[44px] items-center gap-1.5 rounded-lg bg-[#005F99] px-3 py-2 text-xs font-bold text-white transition hover:bg-[#054A78] active:bg-[#043A5E] disabled:opacity-60">
+                                        <svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        </svg>
+                                        <span x-text="fetchingGps ? 'Mengambil GPS...' : 'Ambil Shareloc GPS Saat Ini'">Ambil Shareloc GPS Saat Ini</span>
+                                    </button>
+                                </div>
+                                <input
+                                    id="shareloc"
+                                    name="shareloc"
+                                    type="text"
+                                    x-model="shareloc"
+                                    required
+                                    placeholder="https://www.google.com/maps?q=-6.200,106.816 atau tempel link Maps"
+                                    class="mt-2 block min-h-[46px] w-full rounded-lg border-[1.5px] border-[#5B82A6] bg-white px-3.5 py-2 font-mono text-xs font-bold text-[#06233B] placeholder-[#2C5270]/70">
+                                <p x-show="gpsStatus !== ''" x-cloak class="mt-1.5 text-xs font-semibold" :class="gpsError ? 'text-[#991B1B]' : 'text-[#065F46]'" x-text="gpsStatus"></p>
                             </div>
 
                             <div>
                                 <label for="sales_id" class="block text-xs font-bold uppercase tracking-wider text-[#06233B]">
-                                    Kode Sales <span class="text-[#991B1B]">*</span>
+                                    Kode Sales (Pilih Sales atau Tanpa Sales)
                                 </label>
                                 <select
                                     id="sales_id"
                                     name="sales_id"
                                     x-model="selectedSalesId"
-                                    required
                                     class="mt-1.5 block min-h-[46px] w-full rounded-lg border-[1.5px] border-[#5B82A6] bg-white px-3.5 py-2.5 text-sm font-medium text-[#06233B]">
-                                    <option value="">-- Pilih Kode Sales --</option>
+                                    <option value="">-- Tanpa Sales (Langsung / Kantor) --</option>
                                     @foreach ($salesList as $s)
                                     <option value="{{ $s->id }}">
                                         {{ $s->kode_sales_ip }} - {{ $s->nama_sales }} (PPPoE: {{ $s->kode_sales_pppoe }})
@@ -192,7 +215,6 @@ $s->id => [
                             </div>
                         </div>
 
-                        <!-- Rekan Teknisi -->
                         <div class="mt-5 border-t border-[#B8D4EC] pt-4">
                             <label for="rekan_teknisi" class="block text-xs font-bold uppercase tracking-wider text-[#06233B]">
                                 Rekan Teknisi (Opsional)
@@ -202,19 +224,17 @@ $s->id => [
                                 name="rekan_teknisi"
                                 type="text"
                                 x-model="rekanTeknisi"
-                                placeholder="Kosongkan jika sendiri, atau isi rekan (contoh: nopal)"
+                                placeholder="Kosongkan jika sendiri, atau ketik nama rekan (contoh: nopal)"
                                 class="mt-1.5 block min-h-[46px] w-full rounded-lg border-[1.5px] border-[#5B82A6] bg-white px-3.5 py-2.5 text-sm font-medium text-[#06233B] placeholder-[#2C5270]/70">
                             <p class="mt-1.5 text-xs font-medium text-[#2C5270]">
-                                Tercatat sebagai: <strong class="font-mono text-[#06233B]" x-text="formattedTechnicianPreview()"></strong>
+                                Nama teknisi di laporan: <span class="font-mono font-bold text-[#06233B]" x-text="formattedTechnicianPreview()"></span>
                             </p>
                         </div>
                     </section>
 
-                    <!-- Panel 2: Jaringan ODP, Paket & Redaman Perangkat ONT -->
-                    <section class="space-y-4 rounded-2xl border-[1.5px] border-[#5B82A6] bg-white p-5 shadow-sm">
-                        <div class="border-b border-[#B8D4EC] pb-3">
-                            <span class="font-mono text-xs font-bold uppercase text-[#005F99]">Bagian 02</span>
-                            <h2 class="text-base font-extrabold text-[#06233B]">ODP, Paket & Parameter Optik ONT</h2>
+                    <section class="space-y-4 rounded-2xl border-[1.5px] border-[#5B82A6] bg-white p-4 shadow-sm sm:p-5">
+                        <div class="border-b border-[#B8D4EC] pb-2.5">
+                            <h2 class="text-[clamp(1rem,1.6vw,1.125rem)] font-extrabold text-[#06233B]">ODP, Paket & Parameter Optik ONT</h2>
                         </div>
 
                         <div>
@@ -245,7 +265,7 @@ $s->id => [
 
                             <template x-if="currentOdp()">
                                 <div class="mt-2 flex items-center justify-between rounded-lg border border-[#5B82A6] bg-[#EDF5FC] px-3 py-2 text-xs">
-                                    <span class="font-semibold text-[#2C5270]">Target Provisioning:</span>
+                                    <span class="font-semibold text-[#2C5270]">Mode konfigurasi:</span>
                                     <span
                                         x-show="currentOdp().status_upgrade === 'upgrade'"
                                         class="inline-flex items-center rounded border border-[#0284C7] bg-[#E0F2FE] px-2 py-0.5 font-mono font-bold text-[#075985]">
@@ -383,15 +403,75 @@ $s->id => [
                     </section>
                 </div>
 
-                <!-- Primary Action Bar -->
+                <section class="rounded-2xl border-[1.5px] border-[#5B82A6] bg-white p-4 shadow-sm sm:p-5">
+                    <div class="flex flex-wrap items-center justify-between gap-2 border-b border-[#B8D4EC] pb-2.5">
+                        <h2 class="text-[clamp(1rem,1.6vw,1.125rem)] font-extrabold text-[#06233B]">Lampiran 5 Foto Wajib Instalasi</h2>
+                        <span
+                            class="inline-flex items-center rounded-md border px-2.5 py-1 font-mono text-xs font-bold"
+                            :class="uploadedPhotosCount() === 5 ? 'border-[#059669] bg-[#D1FAE5] text-[#065F46]' : 'border-[#D97706] bg-[#FEF3C7] text-[#78350F]'"
+                            x-text="uploadedPhotosCount() + '/5 FOTO SIAP'"></span>
+                    </div>
+
+                    @php
+                    $photoItems = [
+                    ['field' => 'foto_mac_ont', 'title' => '1. Foto MAC ONT', 'hint' => 'Label serial dan MAC di belakang ONT'],
+                    ['field' => 'foto_odp', 'title' => '2. Foto ODP', 'hint' => 'Port ODP dan redaman terpasang'],
+                    ['field' => 'foto_kertas_registrasi', 'title' => '3. Foto Kertas Registrasi', 'hint' => 'Formulir registrasi fisik pelanggan'],
+                    ['field' => 'foto_ktp_pelanggan', 'title' => '4. Foto KTP Pelanggan', 'hint' => 'Kartu identitas pelanggan'],
+                    ['field' => 'foto_rumah_pelanggan', 'title' => '5. Foto Rumah Pelanggan', 'hint' => 'Tampak depan rumah lokasi pasang'],
+                    ];
+                    @endphp
+
+                    <div class="mt-4 grid grid-cols-1 gap-3.5 sm:grid-cols-2 xl:grid-cols-5">
+                        @foreach ($photoItems as $item)
+                        <div class="flex flex-col justify-between rounded-xl border-[1.5px] border-[#5B82A6] bg-[#EDF5FC] p-3.5">
+                            <div>
+                                <div class="flex items-start justify-between gap-1.5">
+                                    <label for="{{ $item['field'] }}" class="text-xs font-extrabold uppercase text-[#06233B]">
+                                        {{ $item['title'] }} <span class="text-[#991B1B]">*</span>
+                                    </label>
+                                    <span
+                                        x-show="photoPreviews['{{ $item['field'] }}']"
+                                        x-cloak
+                                        class="shrink-0 rounded bg-[#D1FAE5] px-1.5 py-0.5 font-mono text-[10px] font-bold text-[#065F46]">
+                                        OK
+                                    </span>
+                                </div>
+                                <p class="mt-0.5 text-[11px] font-medium text-[#2C5270]">{{ $item['hint'] }}</p>
+
+                                <template x-if="photoPreviews['{{ $item['field'] }}']">
+                                    <div class="mt-2.5 overflow-hidden rounded-lg border border-[#5B82A6] bg-white">
+                                        <img
+                                            :src="photoPreviews['{{ $item['field'] }}']"
+                                            alt="Pratinjau {{ $item['title'] }}"
+                                            class="h-28 w-full object-cover">
+                                    </div>
+                                </template>
+                            </div>
+
+                            <div class="mt-3">
+                                <input
+                                    id="{{ $item['field'] }}"
+                                    name="{{ $item['field'] }}"
+                                    type="file"
+                                    accept="image/*"
+                                    required
+                                    @change="handlePhotoSelect($event, '{{ $item['field'] }}')"
+                                    class="block w-full text-xs font-semibold text-[#06233B] file:mr-2.5 file:min-h-[44px] file:cursor-pointer file:rounded-lg file:border-0 file:bg-[#005F99] file:px-3 file:py-2 file:text-xs file:font-bold file:text-white hover:file:bg-[#054A78]">
+                            </div>
+                        </div>
+                        @endforeach
+                    </div>
+                </section>
+
                 <div class="rounded-2xl border-[1.5px] border-[#5B82A6] bg-white p-4 shadow-sm sm:flex sm:items-center sm:justify-between sm:gap-4">
                     <div class="mb-3 text-xs font-medium text-[#2C5270] sm:mb-0">
-                        Pastikan kabel dropcore terpasang dan redaman ONT sesuai standar sebelum menekan tombol kirim.
+                        Periksa kembali titik Shareloc, redaman optik, dan kelima foto dokumentasi sebelum mengirim data.
                     </div>
                     <button
                         type="submit"
                         :disabled="submitting"
-                        class="flex min-h-[50px] w-full shrink-0 items-center justify-center gap-2.5 rounded-xl bg-[#005F99] px-6 py-3 text-sm font-bold text-white transition hover:bg-[#054A78] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto">
+                        class="flex min-h-[50px] w-full shrink-0 items-center justify-center gap-2.5 rounded-xl bg-[#005F99] px-6 py-3 text-sm font-bold text-white transition hover:bg-[#054A78] active:bg-[#043A5E] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto">
                         <svg
                             x-show="submitting"
                             x-cloak
@@ -402,21 +482,17 @@ $s->id => [
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
                         </svg>
-                        <span x-text="submitting ? 'Menghubungi MikroTik & Telegram...' : 'Proses Auto-Provisioning PSB'">
-                            Proses Auto-Provisioning PSB
+                        <span x-text="submitting ? 'Mengunggah Foto & Konfigurasi MikroTik...' : 'Kirim Data PSB & Buat Konfigurasi MikroTik'">
+                            Kirim Data PSB & Buat Konfigurasi MikroTik
                         </span>
                     </button>
                 </div>
             </form>
 
-            <!-- Right 4 Columns on Desktop: Live Telegram Payload Preview & Routing Telemetry -->
-            <aside class="space-y-5 lg:col-span-4 lg:sticky lg:top-5">
-                <div class="rounded-2xl border-2 border-[#072A47] bg-[#072A47] p-5 text-white shadow-sm">
+            <aside class="space-y-4 lg:col-span-4 lg:sticky lg:top-5">
+                <div class="rounded-2xl border-2 border-[#072A47] bg-[#072A47] p-4 text-white shadow-sm sm:p-5">
                     <div class="flex items-center justify-between border-b border-[#174E7C] pb-3">
-                        <div>
-                            <div class="font-mono text-[11px] font-bold uppercase text-[#BAE6FD]">Pratinjau Langsung</div>
-                            <h2 class="text-base font-extrabold text-white">Format Laporan Telegram</h2>
-                        </div>
+                        <h2 class="text-base font-extrabold text-white">Pratinjau Laporan Telegram</h2>
                         <span class="rounded border border-[#7DD3FC] bg-[#005F99] px-2 py-0.5 font-mono text-[11px] font-bold text-white">
                             [AUTO-NOC]
                         </span>
@@ -427,9 +503,9 @@ $s->id => [
                         x-text="liveTelegramPreview()"></pre>
 
                     <div class="mt-3.5 rounded-xl border border-[#174E7C] bg-[#0B3B63] p-3 text-xs text-[#BAE6FD]">
-                        <div class="font-bold text-white">Aturan Pengiriman Otomatis:</div>
+                        <div class="font-bold text-white">Pengiriman Teks & 5 Foto Dokumentasi</div>
                         <p class="mt-1 leading-relaxed">
-                            Nilai <code class="font-mono text-white">POE/IP</code> akan terisi otomatis dengan username PPPoE atau IP Static dari MikroTik setelah formulir dikirim.
+                            Aplikasi mengisi baris <code class="font-mono text-white">POE/IP</code> dengan username PPPoE atau IP Static dari MikroTik, lalu mengirimkannya bersama album 5 foto ke grup Telegram tim Anda.
                         </p>
                     </div>
                 </div>
@@ -437,7 +513,6 @@ $s->id => [
         </div>
     </main>
 
-    <!-- Success / Fallback Result Modal with 1-Tap Copy Button -->
     @if ($psbResult !== null)
     <div
         x-show="showResultModal"
@@ -447,7 +522,7 @@ $s->id => [
         role="dialog"
         aria-modal="true"
         aria-labelledby="psb-result-title">
-        <div class="w-full max-w-md rounded-2xl border-2 border-[#005F99] bg-white p-6 shadow-2xl">
+        <div class="w-full max-w-md rounded-2xl border-2 border-[#005F99] bg-white p-5 shadow-2xl sm:p-6">
             @if (($psbResult['status_sync'] ?? '') === 'success')
             <div class="flex items-center gap-3">
                 <span class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[#059669] bg-[#D1FAE5] text-[#065F46]">
@@ -456,9 +531,9 @@ $s->id => [
                     </svg>
                 </span>
                 <div>
-                    <h3 id="psb-result-title" class="text-base font-extrabold text-[#06233B]">Auto-Provisioning Berhasil</h3>
+                    <h3 id="psb-result-title" class="text-base font-extrabold text-[#06233B]">Konfigurasi MikroTik Selesai</h3>
                     <p class="text-xs font-medium text-[#2C5270]">
-                        {{ ($psbResult['tipe_koneksi'] ?? '') === 'pppoe' ? 'PPPoE Secret telah dibuat di MikroTik' : 'Simple Queue & Static ARP telah diaktifkan' }}
+                        {{ ($psbResult['tipe_koneksi'] ?? '') === 'pppoe' ? 'Aplikasi telah membuat PPPoE Secret di router utama' : 'Aplikasi telah mengaktifkan Simple Queue dan Static ARP' }}
                     </p>
                 </div>
             </div>
@@ -474,11 +549,11 @@ $s->id => [
                 <button
                     type="button"
                     @click="copyResultToClipboard()"
-                    class="mt-3 flex min-h-[46px] w-full items-center justify-center gap-2 rounded-xl bg-[#005F99] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#054A78]">
+                    class="mt-3 flex min-h-[46px] w-full items-center justify-center gap-2 rounded-xl bg-[#005F99] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#054A78] active:bg-[#043A5E]">
                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                     </svg>
-                    <span x-text="copied ? 'Tersalin ke Clipboard!' : 'Salin POE / IP (1-Tap Copy)'">Salin POE / IP (1-Tap Copy)</span>
+                    <span x-text="copied ? 'Tersalin ke Clipboard!' : 'Salin POE / IP ke Clipboard'">Salin POE / IP ke Clipboard</span>
                 </button>
             </div>
             @else
@@ -489,15 +564,15 @@ $s->id => [
                     </svg>
                 </span>
                 <div>
-                    <h3 id="psb-result-title" class="text-base font-extrabold text-[#06233B]">Data PSB Tersimpan (Fallback NOC)</h3>
-                    <p class="text-xs font-semibold text-[#78350F]">Laporan Telegram tetap terkirim dengan alert ke NOC.</p>
+                    <h3 id="psb-result-title" class="text-base font-extrabold text-[#06233B]">Data PSB Tersimpan (Menunggu NOC)</h3>
+                    <p class="text-xs font-semibold text-[#78350F]">Aplikasi telah mengirim laporan ke Telegram dengan penanda CEK NOC.</p>
                 </div>
             </div>
 
             <div class="mt-4 rounded-xl border-2 border-[#DC2626] bg-[#FEE2E2] p-4 text-xs text-[#991B1B]">
                 <div class="font-bold">{{ $psbResult['hasil_poe_ip'] }}</div>
                 @if (! empty($psbResult['error_log']))
-                <div class="mt-1.5 font-mono text-[11px]">Detail kendala API: {{ $psbResult['error_log'] }}</div>
+                <div class="mt-1.5 font-mono text-[11px]">Pesan RouterOS: {{ $psbResult['error_log'] }}</div>
                 @endif
             </div>
             @endif
@@ -529,8 +604,8 @@ $s->id => [
                 <button
                     type="button"
                     @click="showResultModal = false"
-                    class="flex min-h-[46px] w-full items-center justify-center rounded-xl border-[1.5px] border-[#5B82A6] bg-[#EDF5FC] px-4 py-2.5 text-sm font-bold text-[#06233B] hover:bg-[#E0F2FE]">
-                    Tutup & Input Pelanggan Baru
+                    class="flex min-h-[46px] w-full items-center justify-center rounded-xl border-[1.5px] border-[#5B82A6] bg-[#EDF5FC] px-4 py-2.5 text-sm font-bold text-[#06233B] hover:bg-[#E0F2FE] active:bg-[#D0E6F8]">
+                    Tutup & Input Pelanggan Berikutnya
                 </button>
             </div>
         </div>
@@ -550,6 +625,7 @@ $s->id => [
             salesMap: config.salesMap || {},
             namaPelanggan: config.initialNama || '',
             alamat: config.initialAlamat || '',
+            shareloc: config.initialShareloc || '',
             noTlp: config.initialNoTlp || '',
             selectedOdpId: config.initialOdpId || '',
             port: config.initialPort || '',
@@ -562,6 +638,16 @@ $s->id => [
             signalOnt: config.initialSignalOnt || '',
             macError: '',
             rekanTeknisi: config.initialRekan || '',
+            fetchingGps: false,
+            gpsStatus: '',
+            gpsError: false,
+            photoPreviews: {
+                foto_mac_ont: null,
+                foto_odp: null,
+                foto_kertas_registrasi: null,
+                foto_ktp_pelanggan: null,
+                foto_rumah_pelanggan: null,
+            },
             submitting: false,
             showResultModal: Boolean(config.hasResultModal),
             resultCopyValue: config.resultCopyValue || '',
@@ -636,6 +722,50 @@ $s->id => [
                 }
             },
 
+            fetchCurrentGpsLocation() {
+                if (!navigator.geolocation) {
+                    this.gpsError = true;
+                    this.gpsStatus = 'Browser perangkat tidak mendukung GPS otomatis. Tempel link Google Maps secara manual.';
+                    return;
+                }
+
+                this.fetchingGps = true;
+                this.gpsError = false;
+                this.gpsStatus = 'Mengambil titik koordinat GPS...';
+
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const lat = position.coords.latitude.toFixed(6);
+                        const lng = position.coords.longitude.toFixed(6);
+                        this.shareloc = `https://www.google.com/maps?q=${lat},${lng}`;
+                        this.fetchingGps = false;
+                        this.gpsError = false;
+                        this.gpsStatus = `Koordinat GPS terisi (${lat}, ${lng}).`;
+                    },
+                    () => {
+                        this.fetchingGps = false;
+                        this.gpsError = true;
+                        this.gpsStatus = 'Gagal membaca lokasi GPS. Aktifkan izin lokasi atau tempel link Google Maps.';
+                    }, {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 0
+                    }
+                );
+            },
+
+            handlePhotoSelect(event, fieldName) {
+                const file = event.target.files && event.target.files[0] ? event.target.files[0] : null;
+                if (this.photoPreviews[fieldName]) {
+                    URL.revokeObjectURL(this.photoPreviews[fieldName]);
+                }
+                this.photoPreviews[fieldName] = file ? URL.createObjectURL(file) : null;
+            },
+
+            uploadedPhotosCount() {
+                return Object.values(this.photoPreviews).filter(Boolean).length;
+            },
+
             formattedTechnicianPreview() {
                 const partner = (this.rekanTeknisi || '').trim();
                 return partner ? `${this.userName}&${partner}` : this.userName;
@@ -647,8 +777,8 @@ $s->id => [
                 const salesObj = this.salesMap[this.selectedSalesId] || null;
                 const poePreview = odp ?
                     (odp.status_upgrade === 'upgrade' ?
-                        `${odp.kode_odp}_01_${salesObj ? salesObj.kode_pppoe : 'XX'}_XXXXX_${(this.namaPelanggan || 'PELANGGAN').toUpperCase().replace(/[^A-Z0-9 ]/g, '').trim().replace(/\s+/g, '_')}` :
-                        '[Auto-Claim IP dari ' + (salesObj ? salesObj.router : 'Router Sales') + ']') :
+                        `${odp.kode_odp}_01_${salesObj ? salesObj.kode_pppoe : '00'}_XXXXX_${(this.namaPelanggan || 'PELANGGAN').toUpperCase().replace(/[^A-Z0-9 ]/g, '').trim().replace(/\s+/g, '_')}` :
+                        '[Auto-Claim IP dari ' + (salesObj ? salesObj.router : 'Router Distribusi') + ']') :
                     '[Menunggu Pilihan ODP]';
 
                 const lines = [];
@@ -657,6 +787,7 @@ $s->id => [
                 }
                 lines.push(`NAMA         : ${this.namaPelanggan || '-'}`);
                 lines.push(`Alamat.      : ${this.alamat || '-'}`);
+                lines.push(`SHARELOC     : ${this.shareloc || '-'}`);
                 lines.push(`NO.TLP       : ${this.noTlp || '-'}`);
                 lines.push(`ODP          : ${odp ? odp.nama_odp : '-'}`);
                 lines.push(`PORT         : ${this.port || '-'}`);
@@ -667,7 +798,7 @@ $s->id => [
                 lines.push(`JARAK KABEL  : ${this.jarakKabel || '-'}`);
                 lines.push(`SIGNAL ODP   : ${this.signalOdp || '-'}`);
                 lines.push(`SIGNAL ONT   : ${this.signalOnt || '-'}`);
-                lines.push(`SALES        : ${salesObj ? salesObj.kode_ip : '-'}`);
+                lines.push(`SALES        : ${salesObj ? salesObj.kode_ip : 'TANPA SALES'}`);
                 lines.push(`NAMA TEKNISI : ${this.formattedTechnicianPreview()}`);
                 lines.push('[AUTO-NOC]');
                 return lines.join('\n');
@@ -695,6 +826,7 @@ $s->id => [
                     if (navigator.clipboard && window.isSecureContext) {
                         await navigator.clipboard.writeText(this.resultCopyValue);
                     } else {
+                        // Fallback textarea copy for non-HTTPS LAN environments.
                         const textArea = document.createElement('textarea');
                         textArea.value = this.resultCopyValue;
                         textArea.style.position = 'fixed';

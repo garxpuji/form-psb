@@ -39,7 +39,9 @@ class DashboardController extends Controller
             $ordersQuery->where('tipe_koneksi', $koneksiFilter);
         }
 
-        if ($salesFilter !== '' && is_numeric($salesFilter)) {
+        if ($salesFilter === 'tanpa_sales') {
+            $ordersQuery->whereNull('sales_id');
+        } elseif ($salesFilter !== '' && is_numeric($salesFilter)) {
             $ordersQuery->where('sales_id', (int) $salesFilter);
         }
 

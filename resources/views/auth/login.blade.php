@@ -1,8 +1,7 @@
-@extends('layouts.app', ['title' => 'Login Teknisi & NOC - ISP Auto-PSB'])
+@extends('layouts.app', ['title' => 'Masuk Akun Teknisi & NOC - ISP Auto-PSB'])
 
 @section('content')
 <div class="min-h-screen lg:grid lg:grid-cols-12" x-data="{ submitting: false }">
-    <!-- Desktop Left Operational Overview Panel (Deep Ocean Navy) -->
     <div class="hidden flex-col justify-between bg-[#072A47] p-10 text-white lg:col-span-7 lg:flex xl:p-14">
         <div>
             <div class="inline-flex items-center gap-3 rounded-xl border border-[#174E7C] bg-[#0B3B63] px-4 py-2.5">
@@ -10,43 +9,42 @@
                     PSB
                 </span>
                 <div>
-                    <div class="text-sm font-bold text-white">ISP Auto-PSB Provisioning</div>
-                    <div class="text-xs text-[#BAE6FD]">Integrasi RouterOS API & Bot Telegram</div>
+                    <div class="text-sm font-bold text-white">ISP Auto-PSB</div>
+                    <div class="text-xs text-[#BAE6FD]">RouterOS API & Laporan Telegram</div>
                 </div>
             </div>
 
-            <h1 class="mt-10 text-3xl font-extrabold leading-tight tracking-tight text-white xl:text-4xl">
-                Otomasi Pemasangan Baru (PSB) Langsung dari Lapangan ke MikroTik.
+            <h1 class="mt-9 text-[clamp(1.75rem,2.6vw,2.35rem)] font-extrabold leading-tight tracking-tight text-white">
+                Input Pasang Baru (PSB) & Konfigurasi RouterOS Langsung dari Lokasi Pelanggan.
             </h1>
             <p class="mt-4 max-w-xl text-base leading-relaxed text-[#E0F2FE]">
-                Sistem ini menghubungkan formulir teknisi lapangan dengan router distribusi Static IP dan server PPPoE utama secara langsung, lalu mengirimkan laporan instalasi ke grup Telegram tim yang bertugas.
+                Teknisi mengisi data pelanggan, titik koordinat Shareloc, dan 5 foto instalasi. Aplikasi membuat akun PPPoE atau mengaktifkan Simple Queue dan Static ARP di MikroTik, lalu mengirim laporannya ke grup Telegram tim.
             </p>
 
-            <!-- Real Workflow Architecture Cards (Varied hierarchy per R-14) -->
-            <div class="mt-8 space-y-4 max-w-xl">
+            <div class="mt-8 max-w-xl space-y-4">
                 <div class="rounded-xl border border-[#174E7C] bg-[#0B3B63] p-4">
                     <div class="flex items-center justify-between">
-                        <span class="font-mono text-xs font-bold text-[#BAE6FD]">CABANG PROVISIONING OTOMATIS</span>
+                        <span class="font-mono text-xs font-bold text-[#BAE6FD]">PENENTUAN MODE BERDASARKAN ODP</span>
                         <span class="rounded border border-[#7DD3FC] bg-[#005F99] px-2 py-0.5 font-mono text-[11px] font-bold text-white">
                             RouterOS v6 / v7
                         </span>
                     </div>
-                    <p class="mt-1.5 text-sm text-white">
-                        ODP berstatus <strong>Upgrade [PPPoE]</strong> otomatis membuat <em>PPP Secret</em> berurutan, sedangkan ODP <strong>Belum Upgrade [IP]</strong> mengklaim slot <em>Simple Queue</em> <code class="font-mono text-[#BAE6FD]">CLIENT-*</code> dan mengikat <em>Static ARP</em>.
+                    <p class="mt-1.5 text-sm leading-relaxed text-white">
+                        Saat Anda memilih ODP berstatus Upgrade [PPPoE], aplikasi membuat PPP Secret baru dengan nomor urut otomatis. Untuk ODP Belum Upgrade [IP], aplikasi mengambil slot Simple Queue kosong dan mengikat MAC Address ONT ke Static ARP.
                     </p>
                 </div>
 
                 <div class="grid grid-cols-2 gap-4">
                     <div class="rounded-xl border border-[#174E7C] bg-[#051F36] p-4">
-                        <div class="font-mono text-xs font-bold text-[#BAE6FD]">VALIDASI 3 LIVE CHECK</div>
+                        <div class="font-mono text-xs font-bold text-[#BAE6FD]">PENGECEKAN SLOT LANGSUNG</div>
                         <p class="mt-1 text-xs leading-relaxed text-[#E0F2FE]">
-                            Memastikan Simple Queue tersedia, IP bebas dari Static ARP, dan tidak berada di daftar isolir <code class="font-mono">EXPIRED</code>.
+                            Sebelum memakai IP Static, aplikasi memeriksa antrean CLIENT-*, tabel Static ARP, dan daftar alamat EXPIRED di MikroTik.
                         </p>
                     </div>
                     <div class="rounded-xl border border-[#174E7C] bg-[#051F36] p-4">
-                        <div class="font-mono text-xs font-bold text-[#BAE6FD]">FALLBACK AMAN KE NOC</div>
+                        <div class="font-mono text-xs font-bold text-[#BAE6FD]">CADANGAN LAPORAN NOC</div>
                         <p class="mt-1 text-xs leading-relaxed text-[#E0F2FE]">
-                            Jika koneksi API MikroTik terputus, data tetap tersimpan dan grup Telegram menerima peringatan <code class="font-mono">CEK NOC</code>.
+                            Apabila router sedang tidak terjangkau, aplikasi tetap menyimpan data PSB dan mengirim laporan ke Telegram dengan penanda CEK NOC.
                         </p>
                     </div>
                 </div>
@@ -54,28 +52,26 @@
         </div>
 
         <div class="border-t border-[#174E7C] pt-6 text-xs text-[#BAE6FD]">
-            Sesi login teknisi dipertahankan selama 30 hari (<code class="font-mono text-white">SESSION_LIFETIME=43200</code>) untuk kemudahan kerja di perangkat mobile.
+            Browser ponsel menyimpan sesi login Anda selama 30 hari (<code class="font-mono text-white">SESSION_LIFETIME=43200</code>) agar Anda tidak perlu masuk berulang kali di lapangan.
         </div>
     </div>
 
-    <!-- Right Login Form Column (Full-width on mobile, 5 cols on desktop) -->
-    <div class="flex min-h-screen flex-col justify-center bg-[#EDF5FC] px-4 py-10 sm:px-8 lg:col-span-5 lg:px-10 xl:px-14">
+    <div class="flex min-h-screen flex-col justify-center bg-[#EDF5FC] px-4 py-8 sm:px-8 lg:col-span-5 lg:px-10 xl:px-14">
         <div class="mx-auto w-full max-w-md">
-            <!-- Mobile Header (hidden on lg) -->
-            <div class="mb-6 flex items-center gap-3 rounded-xl bg-[#072A47] p-4 text-white lg:hidden">
+            <div class="mb-5 flex items-center gap-3 rounded-xl bg-[#072A47] p-3.5 text-white lg:hidden">
                 <span class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[#7DD3FC] bg-[#005F99] font-mono text-xs font-extrabold text-white">
                     PSB
                 </span>
                 <div>
                     <div class="text-base font-bold text-white">ISP Auto-PSB</div>
-                    <div class="text-xs text-[#BAE6FD]">Auto-Provisioning MikroTik & Telegram</div>
+                    <div class="text-xs text-[#BAE6FD]">Formulir Teknisi & Panel NOC</div>
                 </div>
             </div>
 
-            <div class="rounded-2xl border-2 border-[#5B82A6] bg-white p-6 shadow-sm sm:p-8">
-                <h2 class="text-xl font-extrabold text-[#06233B]">Masuk ke Akun Teknisi / NOC</h2>
+            <div class="rounded-2xl border-2 border-[#5B82A6] bg-white p-5 shadow-sm sm:p-8">
+                <h2 class="text-[clamp(1.15rem,2vw,1.35rem)] font-extrabold text-[#06233B]">Masuk ke Akun Anda</h2>
                 <p class="mt-1 text-xs font-medium text-[#2C5270]">
-                    Gunakan username dan password aktif yang terdaftar di sistem.
+                    Masukkan username dan password teknisi atau admin NOC.
                 </p>
 
                 @if ($errors->any())
@@ -89,7 +85,7 @@
                 <form
                     method="POST"
                     action="{{ route('login.submit') }}"
-                    class="mt-6 space-y-4"
+                    class="mt-5 space-y-4"
                     @submit="submitting = true">
                     @csrf
 
@@ -128,7 +124,7 @@
                         <button
                             type="submit"
                             :disabled="submitting"
-                            class="flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-[#005F99] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#054A78] disabled:cursor-not-allowed disabled:opacity-60">
+                            class="flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-[#005F99] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#054A78] active:bg-[#043A5E] disabled:cursor-not-allowed disabled:opacity-60">
                             <svg
                                 x-show="submitting"
                                 x-cloak
@@ -139,7 +135,7 @@
                                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
                             </svg>
-                            <span x-text="submitting ? 'Memverifikasi Akun...' : 'Masuk ke Formulir PSB'">Masuk ke Formulir PSB</span>
+                            <span x-text="submitting ? 'Memeriksa Akun...' : 'Masuk ke Formulir PSB'">Masuk ke Formulir PSB</span>
                         </button>
                     </div>
                 </form>

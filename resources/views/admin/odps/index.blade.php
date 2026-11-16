@@ -1,17 +1,16 @@
 @extends('layouts.admin', ['title' => 'Master Data ODP'])
 
 @section('content')
-<div class="space-y-5" x-data="{ editingOdp: null }">
+<div class="space-y-4 sm:space-y-5" x-data="{ editingOdp: null }">
     <div class="rounded-2xl border-[1.5px] border-[#5B82A6] bg-white p-4 shadow-sm sm:p-5">
-        <h1 class="text-lg font-extrabold text-[#06233B] sm:text-xl">Master Data ODP & Status Upgrade</h1>
+        <h1 class="text-[clamp(1.125rem,2vw,1.35rem)] font-extrabold text-[#06233B]">Master Data ODP & Mode Koneksi</h1>
         <p class="mt-0.5 text-xs font-medium text-[#2C5270]">
-            Kelola daftar ODP lapangan. Gunakan tombol <strong>1-Click Toggle</strong> untuk langsung mengubah ODP dari <code class="rounded bg-[#FEF3C7] px-1.5 py-0.5 font-mono font-bold text-[#78350F]">belum_upgrade [IP]</code> ke <code class="rounded bg-[#E0F2FE] px-1.5 py-0.5 font-mono font-bold text-[#075985]">upgrade [PPPoE]</code> saat migrasi lapangan selesai.
+            Atur daftar ODP lapangan. Saat tim lapangan selesai memigrasikan jalur ke PPPoE, tekan tombol ubah status pada baris ODP agar kiriman PSB berikutnya langsung membuat PPPoE Secret.
         </p>
     </div>
 
-    <div class="grid grid-cols-1 gap-5 xl:grid-cols-12 xl:items-start">
-        <!-- Create Form (4 Columns on Desktop) -->
-        <div class="rounded-2xl border-[1.5px] border-[#5B82A6] bg-white p-5 shadow-sm xl:col-span-4">
+    <div class="grid grid-cols-1 gap-4 sm:gap-5 xl:grid-cols-12 xl:items-start">
+        <div class="rounded-2xl border-[1.5px] border-[#5B82A6] bg-white p-4 shadow-sm sm:p-5 xl:col-span-4">
             <h2 class="text-base font-extrabold text-[#06233B]">Tambah ODP Baru</h2>
             <form method="POST" action="{{ route('admin.odps.store') }}" class="mt-4 space-y-4">
                 @csrf
@@ -27,7 +26,7 @@
                 </div>
 
                 <div>
-                    <label for="kode_odp" class="block text-xs font-bold uppercase text-[#06233B]">Kode ODP (Prefix PPPoE)</label>
+                    <label for="kode_odp" class="block text-xs font-bold uppercase text-[#06233B]">Kode ODP (Awalan PPPoE)</label>
                     <input
                         id="kode_odp"
                         name="kode_odp"
@@ -49,7 +48,7 @@
                 </div>
 
                 <div>
-                    <label for="last_seq" class="block text-xs font-bold uppercase text-[#06233B]">Urutan Terakhir PPPoE (last_seq)</label>
+                    <label for="last_seq" class="block text-xs font-bold uppercase text-[#06233B]">Nomor Urut Terakhir PPPoE (last_seq)</label>
                     <input
                         id="last_seq"
                         name="last_seq"
@@ -61,13 +60,12 @@
 
                 <button
                     type="submit"
-                    class="flex min-h-[46px] w-full items-center justify-center rounded-xl bg-[#005F99] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#054A78]">
+                    class="flex min-h-[46px] w-full items-center justify-center rounded-xl bg-[#005F99] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#054A78] active:bg-[#043A5E]">
                     Simpan ODP Baru
                 </button>
             </form>
         </div>
 
-        <!-- ODP Table (8 Columns on Desktop) -->
         <div class="overflow-hidden rounded-2xl border-[1.5px] border-[#5B82A6] bg-white shadow-sm xl:col-span-8">
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-[#B8D4EC] text-left text-sm">
@@ -75,7 +73,7 @@
                         <tr>
                             <th class="px-4 py-3.5">Nama ODP</th>
                             <th class="px-4 py-3.5">Kode PPPoE</th>
-                            <th class="px-4 py-3.5">Status & 1-Click Toggle</th>
+                            <th class="px-4 py-3.5">Status & Ubah Cepat</th>
                             <th class="px-4 py-3.5">Last Seq</th>
                             <th class="px-4 py-3.5">Total PSB</th>
                             <th class="px-4 py-3.5 text-right">Tindakan</th>
@@ -103,7 +101,7 @@
                                         @method('PATCH')
                                         <button
                                             type="submit"
-                                            class="inline-flex min-h-[40px] items-center rounded-lg border-[1.5px] border-[#005F99] bg-[#EDF5FC] px-3 py-1.5 text-xs font-bold text-[#06233B] hover:bg-[#005F99] hover:text-white">
+                                            class="inline-flex min-h-[44px] items-center rounded-lg border-[1.5px] border-[#005F99] bg-[#EDF5FC] px-3 py-2 text-xs font-bold text-[#06233B] hover:bg-[#005F99] hover:text-white active:bg-[#043A5E]">
                                             {{ $odp->status_upgrade === 'upgrade' ? 'Ubah ke [IP]' : 'Set [PPPoE] Upgrade' }}
                                         </button>
                                     </form>
@@ -118,7 +116,7 @@
                                     <button
                                         type="button"
                                         @click="editingOdp = @js($odp)"
-                                        class="inline-flex min-h-[40px] items-center rounded-lg border-[1.5px] border-[#5B82A6] bg-[#EDF5FC] px-3 py-1.5 font-bold text-[#06233B] hover:bg-[#E0F2FE]">
+                                        class="inline-flex min-h-[44px] items-center rounded-lg border-[1.5px] border-[#5B82A6] bg-[#EDF5FC] px-3 py-2 font-bold text-[#06233B] hover:bg-[#E0F2FE]">
                                         Edit
                                     </button>
                                     <form
@@ -130,7 +128,7 @@
                                         @method('DELETE')
                                         <button
                                             type="submit"
-                                            class="inline-flex min-h-[40px] items-center rounded-lg border border-[#DC2626] bg-[#FEE2E2] px-3 py-1.5 font-bold text-[#991B1B] hover:bg-[#FECACA]">
+                                            class="inline-flex min-h-[44px] items-center rounded-lg border border-[#DC2626] bg-[#FEE2E2] px-3 py-2 font-bold text-[#991B1B] hover:bg-[#FECACA]">
                                             Hapus
                                         </button>
                                     </form>
@@ -140,7 +138,7 @@
                         @empty
                         <tr>
                             <td colspan="6" class="px-6 py-10 text-center text-sm text-[#2C5270]">
-                                Belum ada data ODP terdaftar. Gunakan formulir di sebelah kiri untuk menambahkan ODP baru.
+                                Belum ada data ODP terdaftar. Tambahkan ODP baru melalui formulir di sebelah kiri.
                             </td>
                         </tr>
                         @endforelse
@@ -150,7 +148,6 @@
         </div>
     </div>
 
-    <!-- Edit Modal -->
     <div
         x-show="editingOdp !== null"
         x-cloak
@@ -159,7 +156,7 @@
         role="dialog"
         aria-modal="true">
         <template x-if="editingOdp">
-            <div class="w-full max-w-md rounded-2xl border-2 border-[#005F99] bg-white p-6 shadow-2xl">
+            <div class="w-full max-w-md rounded-2xl border-2 border-[#005F99] bg-white p-5 shadow-2xl sm:p-6">
                 <h3 class="text-base font-extrabold text-[#06233B]" x-text="'Edit ODP: ' + editingOdp.nama_odp"></h3>
                 <form method="POST" :action="'/admin/odps/' + editingOdp.id" class="mt-4 space-y-4">
                     @csrf

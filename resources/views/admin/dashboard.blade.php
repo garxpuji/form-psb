@@ -1,59 +1,52 @@
-@extends('layouts.admin', ['title' => 'Log PSB & Retry Provisioning'])
+@extends('layouts.admin', ['title' => 'Log PSB & Kirim Ulang Konfigurasi'])
 
 @section('content')
-<div class="space-y-5">
-    <!-- Compact Ocean Blue Operational Header Strip (Replaces bloated 4-card row) -->
+<div class="space-y-4 sm:space-y-5" x-data="{ activePhotoModal: null }">
     <div class="rounded-2xl border-[1.5px] border-[#5B82A6] bg-white p-4 shadow-sm sm:p-5">
         <div class="flex flex-col justify-between gap-4 xl:flex-row xl:items-center">
             <div>
-                <h1 class="text-lg font-extrabold text-[#06233B] sm:text-xl">Log Pemasangan Baru (PSB) & Retry NOC</h1>
+                <h1 class="text-[clamp(1.125rem,2vw,1.35rem)] font-extrabold text-[#06233B]">Log Pemasangan Baru (PSB) & Kirim Ulang NOC</h1>
                 <p class="mt-0.5 text-xs font-medium text-[#2C5270]">
-                    Prioritas utama: pantau order berstatus <strong class="text-[#991B1B]">FAILED</strong> dan jalankan <strong>Retry Provisioning</strong> setelah kendala koneksi RouterOS teratasi.
+                    Periksa antrean yang gagal terhubung ke MikroTik, cek kelengkapan 5 foto dokumentasi dan titik Shareloc, lalu jalankan kirim ulang konfigurasi.
                 </p>
             </div>
 
-            <!-- Inline Real Database Telemetry Pills + Manual Sync Action -->
-            <div class="flex flex-wrap items-center gap-2.5">
+            <div class="flex flex-wrap items-center gap-2">
                 <a
                     href="{{ route('admin.dashboard') }}"
-                    class="inline-flex min-h-[44px] items-center gap-2 rounded-xl border-[1.5px] border-[#5B82A6] bg-[#EDF5FC] px-3.5 py-2 text-xs font-bold text-[#06233B] hover:bg-[#E0F2FE]"
-                >
+                    class="inline-flex min-h-[44px] items-center gap-2 rounded-xl border-[1.5px] border-[#5B82A6] bg-[#EDF5FC] px-3.5 py-2 text-xs font-bold text-[#06233B] hover:bg-[#E0F2FE] active:bg-[#D0E6F8]">
                     <span>Total Order:</span>
                     <span class="font-mono text-sm font-extrabold">{{ $stats['total'] }}</span>
                 </a>
 
                 <a
                     href="{{ route('admin.dashboard', ['status_sync' => 'success']) }}"
-                    class="inline-flex min-h-[44px] items-center gap-2 rounded-xl border-[1.5px] border-[#059669] bg-[#D1FAE5] px-3.5 py-2 text-xs font-bold text-[#065F46]"
-                >
+                    class="inline-flex min-h-[44px] items-center gap-2 rounded-xl border-[1.5px] border-[#059669] bg-[#D1FAE5] px-3.5 py-2 text-xs font-bold text-[#065F46]">
                     <span>Sukses:</span>
                     <span class="font-mono text-sm font-extrabold">{{ $stats['success'] }}</span>
                 </a>
 
                 <a
                     href="{{ route('admin.dashboard', ['status_sync' => 'failed']) }}"
-                    class="inline-flex min-h-[44px] items-center gap-2 rounded-xl border-2 border-[#DC2626] bg-[#FEE2E2] px-3.5 py-2 text-xs font-bold text-[#991B1B]"
-                >
+                    class="inline-flex min-h-[44px] items-center gap-2 rounded-xl border-2 border-[#DC2626] bg-[#FEE2E2] px-3.5 py-2 text-xs font-bold text-[#991B1B]">
                     <span>Gagal (Perlu Retry):</span>
                     <span class="font-mono text-sm font-extrabold">{{ $stats['failed'] }}</span>
                 </a>
 
                 @if ($stats['pending'] > 0)
-                    <a
-                        href="{{ route('admin.dashboard', ['status_sync' => 'pending']) }}"
-                        class="inline-flex min-h-[44px] items-center gap-2 rounded-xl border-[1.5px] border-[#D97706] bg-[#FEF3C7] px-3.5 py-2 text-xs font-bold text-[#78350F]"
-                    >
-                        <span>Pending:</span>
-                        <span class="font-mono text-sm font-extrabold">{{ $stats['pending'] }}</span>
-                    </a>
+                <a
+                    href="{{ route('admin.dashboard', ['status_sync' => 'pending']) }}"
+                    class="inline-flex min-h-[44px] items-center gap-2 rounded-xl border-[1.5px] border-[#D97706] bg-[#FEF3C7] px-3.5 py-2 text-xs font-bold text-[#78350F]">
+                    <span>Pending:</span>
+                    <span class="font-mono text-sm font-extrabold">{{ $stats['pending'] }}</span>
+                </a>
                 @endif
 
                 <form method="POST" action="{{ route('admin.slots.sync') }}">
                     @csrf
                     <button
                         type="submit"
-                        class="inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-[#005F99] px-4 py-2 text-xs font-bold text-white transition hover:bg-[#054A78]"
-                    >
+                        class="inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-[#005F99] px-4 py-2 text-xs font-bold text-white transition hover:bg-[#054A78] active:bg-[#043A5E]">
                         <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                         </svg>
@@ -64,12 +57,9 @@
         </div>
     </div>
 
-    <!-- Desktop 12-Column Asymmetric Split: Left 9 Cols (Filter + Log Table), Right 3 Cols (Router Slot Monitor Rail) -->
-    <div class="grid grid-cols-1 gap-5 xl:grid-cols-12 xl:items-start">
-        <!-- Primary Workspace: Filter + PSB Orders Table (9 Columns on Desktop) -->
+    <div class="grid grid-cols-1 gap-4 sm:gap-5 xl:grid-cols-12 xl:items-start">
         <div class="space-y-4 xl:col-span-9">
-            <!-- Filter Bar -->
-            <form method="GET" action="{{ route('admin.dashboard') }}" class="rounded-2xl border-[1.5px] border-[#5B82A6] bg-white p-4 shadow-sm">
+            <form method="GET" action="{{ route('admin.dashboard') }}" class="rounded-2xl border-[1.5px] border-[#5B82A6] bg-white p-3.5 shadow-sm sm:p-4">
                 <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-12">
                     <div class="lg:col-span-4">
                         <label for="q" class="block text-xs font-bold uppercase text-[#06233B]">Cari Pelanggan / POE / IP / MAC / Teknisi</label>
@@ -79,8 +69,7 @@
                             type="text"
                             value="{{ $filters['q'] }}"
                             placeholder="Ketik nama, IP, PPPoE, atau MAC..."
-                            class="mt-1 block min-h-[44px] w-full rounded-lg border-[1.5px] border-[#5B82A6] bg-white px-3 py-2 text-sm font-medium text-[#06233B] placeholder-[#2C5270]/70"
-                        >
+                            class="mt-1 block min-h-[44px] w-full rounded-lg border-[1.5px] border-[#5B82A6] bg-white px-3 py-2 text-sm font-medium text-[#06233B] placeholder-[#2C5270]/70">
                     </div>
 
                     <div class="lg:col-span-2">
@@ -88,12 +77,11 @@
                         <select
                             id="status_sync"
                             name="status_sync"
-                            class="mt-1 block min-h-[44px] w-full rounded-lg border-[1.5px] border-[#5B82A6] bg-white px-3 py-2 text-sm font-medium text-[#06233B]"
-                        >
+                            class="mt-1 block min-h-[44px] w-full rounded-lg border-[1.5px] border-[#5B82A6] bg-white px-3 py-2 text-sm font-medium text-[#06233B]">
                             <option value="">Semua Status</option>
-                            <option value="failed" @selected($filters['status_sync'] === 'failed')>Failed (Gagal)</option>
-                            <option value="success" @selected($filters['status_sync'] === 'success')>Success</option>
-                            <option value="pending" @selected($filters['status_sync'] === 'pending')>Pending</option>
+                            <option value="failed" @selected($filters['status_sync']==='failed' )>Failed (Gagal)</option>
+                            <option value="success" @selected($filters['status_sync']==='success' )>Success</option>
+                            <option value="pending" @selected($filters['status_sync']==='pending' )>Pending</option>
                         </select>
                     </div>
 
@@ -102,11 +90,10 @@
                         <select
                             id="tipe_koneksi"
                             name="tipe_koneksi"
-                            class="mt-1 block min-h-[44px] w-full rounded-lg border-[1.5px] border-[#5B82A6] bg-white px-3 py-2 text-sm font-medium text-[#06233B]"
-                        >
+                            class="mt-1 block min-h-[44px] w-full rounded-lg border-[1.5px] border-[#5B82A6] bg-white px-3 py-2 text-sm font-medium text-[#06233B]">
                             <option value="">Semua Tipe</option>
-                            <option value="pppoe" @selected($filters['tipe_koneksi'] === 'pppoe')>PPPoE [Upgrade]</option>
-                            <option value="static_ip" @selected($filters['tipe_koneksi'] === 'static_ip')>Static IP [Belum]</option>
+                            <option value="pppoe" @selected($filters['tipe_koneksi']==='pppoe' )>PPPoE [Upgrade]</option>
+                            <option value="static_ip" @selected($filters['tipe_koneksi']==='static_ip' )>Static IP [Belum]</option>
                         </select>
                     </div>
 
@@ -115,13 +102,13 @@
                         <select
                             id="sales_id"
                             name="sales_id"
-                            class="mt-1 block min-h-[44px] w-full rounded-lg border-[1.5px] border-[#5B82A6] bg-white px-3 py-2 text-sm font-medium text-[#06233B]"
-                        >
+                            class="mt-1 block min-h-[44px] w-full rounded-lg border-[1.5px] border-[#5B82A6] bg-white px-3 py-2 text-sm font-medium text-[#06233B]">
                             <option value="">Semua Sales</option>
+                            <option value="tanpa_sales" @selected($filters['sales_id']==='tanpa_sales' )>Tanpa Sales</option>
                             @foreach ($salesList as $s)
-                                <option value="{{ $s->id }}" @selected($filters['sales_id'] === (string) $s->id)>
-                                    {{ $s->kode_sales_ip }}
-                                </option>
+                            <option value="{{ $s->id }}" @selected($filters['sales_id']===(string) $s->id)>
+                                {{ $s->kode_sales_ip }}
+                            </option>
                             @endforeach
                         </select>
                     </div>
@@ -129,211 +116,280 @@
                     <div class="flex items-end gap-2 lg:col-span-2">
                         <button
                             type="submit"
-                            class="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-lg bg-[#005F99] px-3.5 py-2 text-xs font-bold text-white hover:bg-[#054A78]"
-                        >
-                            Terapkan
+                            class="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-lg bg-[#005F99] px-3.5 py-2 text-xs font-bold text-white hover:bg-[#054A78] active:bg-[#043A5E]">
+                            Saring Data
                         </button>
                         <a
                             href="{{ route('admin.dashboard') }}"
-                            class="inline-flex min-h-[44px] items-center justify-center rounded-lg border-[1.5px] border-[#5B82A6] bg-[#EDF5FC] px-3 py-2 text-xs font-bold text-[#06233B] hover:bg-[#E0F2FE]"
-                        >
+                            class="inline-flex min-h-[44px] items-center justify-center rounded-lg border-[1.5px] border-[#5B82A6] bg-[#EDF5FC] px-3 py-2 text-xs font-bold text-[#06233B] hover:bg-[#E0F2FE] active:bg-[#D0E6F8]">
                             Reset
                         </a>
                     </div>
                 </div>
             </form>
 
-            <!-- PSB Orders Table -->
             <div class="overflow-hidden rounded-2xl border-[1.5px] border-[#5B82A6] bg-white shadow-sm">
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-[#B8D4EC] text-left text-sm">
                         <thead class="bg-[#072A47] text-xs font-bold uppercase tracking-wider text-white">
                             <tr>
                                 <th class="px-4 py-3.5">Status & Tindakan</th>
-                                <th class="px-4 py-3.5">Hasil POE / IP & Log Error</th>
-                                <th class="px-4 py-3.5">Pelanggan</th>
+                                <th class="px-4 py-3.5">Hasil POE / IP & Pesan Error</th>
+                                <th class="px-4 py-3.5">Pelanggan & Shareloc</th>
                                 <th class="px-4 py-3.5">ODP & Paket</th>
-                                <th class="px-4 py-3.5">MAC & Redaman Optik</th>
+                                <th class="px-4 py-3.5">MAC, Optik & 5 Foto</th>
                                 <th class="px-4 py-3.5">Sales & Teknisi</th>
                                 <th class="px-4 py-3.5">Waktu Input</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-[#B8D4EC] bg-white">
                             @forelse ($orders as $order)
-                                <tr class="align-top transition hover:bg-[#EDF5FC]/70">
-                                    <td class="px-4 py-3.5">
-                                        @if ($order->status_sync === 'success')
-                                            <span class="inline-flex items-center rounded-md border border-[#059669] bg-[#D1FAE5] px-2.5 py-0.5 font-mono text-xs font-bold text-[#065F46]">
-                                                SUCCESS
-                                            </span>
-                                        @elseif ($order->status_sync === 'failed')
-                                            <span class="inline-flex items-center rounded-md border border-[#DC2626] bg-[#FEE2E2] px-2.5 py-0.5 font-mono text-xs font-bold text-[#991B1B]">
-                                                FAILED
-                                            </span>
+                            @php
+                            $sharelocHref = str_starts_with((string) $order->shareloc, 'http')
+                            ? $order->shareloc
+                            : 'https://www.google.com/maps/search/?api=1&query=' . urlencode((string) $order->shareloc);
+                            @endphp
+                            <tr class="align-top transition hover:bg-[#EDF5FC]/70">
+                                <td class="px-4 py-3.5">
+                                    @if ($order->status_sync === 'success')
+                                    <span class="inline-flex items-center rounded-md border border-[#059669] bg-[#D1FAE5] px-2.5 py-0.5 font-mono text-xs font-bold text-[#065F46]">
+                                        SUCCESS
+                                    </span>
+                                    @elseif ($order->status_sync === 'failed')
+                                    <span class="inline-flex items-center rounded-md border border-[#DC2626] bg-[#FEE2E2] px-2.5 py-0.5 font-mono text-xs font-bold text-[#991B1B]">
+                                        FAILED
+                                    </span>
+                                    @else
+                                    <span class="inline-flex items-center rounded-md border border-[#D97706] bg-[#FEF3C7] px-2.5 py-0.5 font-mono text-xs font-bold text-[#78350F]">
+                                        PENDING
+                                    </span>
+                                    @endif
+
+                                    @if ($order->status_sync !== 'success')
+                                    <form method="POST" action="{{ route('admin.orders.retry', $order) }}" class="mt-2">
+                                        @csrf
+                                        <button
+                                            type="submit"
+                                            class="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-[#005F99] px-3 py-2 text-xs font-bold text-white transition hover:bg-[#054A78] active:bg-[#043A5E]">
+                                            Retry Provisioning
+                                        </button>
+                                    </form>
+                                    @endif
+                                </td>
+
+                                <td class="px-4 py-3.5">
+                                    <div class="mb-1">
+                                        @if ($order->tipe_koneksi === 'pppoe')
+                                        <span class="rounded border border-[#0284C7] bg-[#E0F2FE] px-1.5 py-0.5 font-mono text-[11px] font-bold text-[#075985]">
+                                            [PPPoE]
+                                        </span>
                                         @else
-                                            <span class="inline-flex items-center rounded-md border border-[#D97706] bg-[#FEF3C7] px-2.5 py-0.5 font-mono text-xs font-bold text-[#78350F]">
-                                                PENDING
-                                            </span>
+                                        <span class="rounded border border-[#D97706] bg-[#FEF3C7] px-1.5 py-0.5 font-mono text-[11px] font-bold text-[#78350F]">
+                                            [Static IP]
+                                        </span>
                                         @endif
+                                    </div>
 
-                                        @if ($order->status_sync !== 'success')
-                                            <form method="POST" action="{{ route('admin.orders.retry', $order) }}" class="mt-2">
-                                                @csrf
-                                                <button
-                                                    type="submit"
-                                                    class="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-[#005F99] px-3 py-2 text-xs font-bold text-white transition hover:bg-[#054A78]"
-                                                >
-                                                    Retry Provisioning
-                                                </button>
-                                            </form>
-                                        @endif
-                                    </td>
+                                    @if ($order->hasil_poe_ip)
+                                    <div class="font-mono text-xs font-extrabold text-[#065F46]">{{ $order->hasil_poe_ip }}</div>
+                                    @else
+                                    <div class="text-xs font-extrabold text-[#991B1B]">GAGAL AUTO-CONFIG (CEK NOC)</div>
+                                    @endif
 
-                                    <td class="px-4 py-3.5">
-                                        <div class="mb-1">
-                                            @if ($order->tipe_koneksi === 'pppoe')
-                                                <span class="rounded border border-[#0284C7] bg-[#E0F2FE] px-1.5 py-0.5 font-mono text-[11px] font-bold text-[#075985]">
-                                                    [PPPoE]
-                                                </span>
-                                            @else
-                                                <span class="rounded border border-[#D97706] bg-[#FEF3C7] px-1.5 py-0.5 font-mono text-[11px] font-bold text-[#78350F]">
-                                                    [Static IP]
-                                                </span>
-                                            @endif
-                                        </div>
+                                    @if ($order->error_log)
+                                    <div class="mt-1.5 max-w-xs rounded-lg border border-[#DC2626] bg-[#FEE2E2] p-2 font-mono text-[11px] text-[#991B1B]">
+                                        {{ $order->error_log }}
+                                    </div>
+                                    @endif
+                                </td>
 
-                                        @if ($order->hasil_poe_ip)
-                                            <div class="font-mono text-xs font-extrabold text-[#065F46]">{{ $order->hasil_poe_ip }}</div>
-                                        @else
-                                            <div class="text-xs font-extrabold text-[#991B1B]">GAGAL AUTO-CONFIG (CEK NOC)</div>
-                                        @endif
+                                <td class="px-4 py-3.5">
+                                    <div class="font-extrabold text-[#06233B]">{{ $order->nama_pelanggan }}</div>
+                                    <div class="font-mono text-xs text-[#2C5270]">{{ $order->no_tlp }}</div>
+                                    <div class="mt-1 max-w-xs text-xs text-[#2C5270]">{{ $order->alamat }}</div>
+                                    @if (! empty($order->shareloc))
+                                    <div class="mt-2">
+                                        <a
+                                            href="{{ $sharelocHref }}"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            class="inline-flex min-h-[44px] items-center gap-1.5 rounded-lg border border-[#0284C7] bg-[#E0F2FE] px-3 py-2 text-xs font-bold text-[#075985] hover:bg-[#005F99] hover:text-white active:bg-[#043A5E]">
+                                            <span>Buka Shareloc Maps</span>
+                                        </a>
+                                    </div>
+                                    @endif
+                                </td>
 
-                                        @if ($order->error_log)
-                                            <div class="mt-1.5 max-w-xs rounded-lg border border-[#DC2626] bg-[#FEE2E2] p-2 font-mono text-[11px] text-[#991B1B]">
-                                                {{ $order->error_log }}
-                                            </div>
-                                        @endif
-                                    </td>
+                                <td class="px-4 py-3.5 text-xs">
+                                    <div class="font-bold text-[#06233B]">
+                                        ODP: {{ $order->odp?->nama_odp ?? '-' }} (Port {{ $order->port }})
+                                    </div>
+                                    <div class="mt-1 font-medium text-[#2C5270]">
+                                        Paket: <span class="font-bold text-[#005F99]">{{ $order->paket?->nama_paket ?? '-' }}</span>
+                                    </div>
+                                </td>
 
-                                    <td class="px-4 py-3.5">
-                                        <div class="font-extrabold text-[#06233B]">{{ $order->nama_pelanggan }}</div>
-                                        <div class="font-mono text-xs text-[#2C5270]">{{ $order->no_tlp }}</div>
-                                        <div class="mt-1 max-w-xs text-xs text-[#2C5270]">{{ $order->alamat }}</div>
-                                    </td>
+                                <td class="px-4 py-3.5 text-xs">
+                                    <div class="font-mono font-bold text-[#06233B]">{{ $order->mac_address }}</div>
+                                    <div class="text-[#2C5270]">{{ $order->brand_router }} &middot; Kabel: {{ $order->jarak_kabel }}</div>
+                                    <div class="mt-0.5 font-mono text-[#06233B]">
+                                        ODP: {{ $order->signal_odp }} | ONT: {{ $order->signal_ont }}
+                                    </div>
 
-                                    <td class="px-4 py-3.5 text-xs">
-                                        <div class="font-bold text-[#06233B]">
-                                            ODP: {{ $order->odp?->nama_odp ?? '-' }} (Port {{ $order->port }})
-                                        </div>
-                                        <div class="mt-1 font-medium text-[#2C5270]">
-                                            Paket: <span class="font-bold text-[#005F99]">{{ $order->paket?->nama_paket ?? '-' }}</span>
-                                        </div>
-                                    </td>
+                                    <div class="mt-2">
+                                        <button
+                                            type="button"
+                                            @click="activePhotoModal = @js([
+                                                    'nama_pelanggan' => $order->nama_pelanggan,
+                                                    'odp' => ($order->odp?->nama_odp ?? '-') . ' / Port ' . $order->port,
+                                                    'photos' => [
+                                                        ['label' => '1. Foto MAC ONT', 'url' => Storage::url($order->foto_mac_ont)],
+                                                        ['label' => '2. Foto ODP', 'url' => Storage::url($order->foto_odp)],
+                                                        ['label' => '3. Foto Kertas Registrasi', 'url' => Storage::url($order->foto_kertas_registrasi)],
+                                                        ['label' => '4. Foto KTP Pelanggan', 'url' => Storage::url($order->foto_ktp_pelanggan)],
+                                                        ['label' => '5. Foto Rumah Pelanggan', 'url' => Storage::url($order->foto_rumah_pelanggan)],
+                                                    ],
+                                                ])"
+                                            class="inline-flex min-h-[44px] items-center rounded-lg border-[1.5px] border-[#5B82A6] bg-[#EDF5FC] px-3 py-2 text-xs font-bold text-[#06233B] hover:bg-[#005F99] hover:text-white active:bg-[#043A5E]">
+                                            Lihat 5 Foto PSB
+                                        </button>
+                                    </div>
+                                </td>
 
-                                    <td class="px-4 py-3.5 text-xs">
-                                        <div class="font-mono font-bold text-[#06233B]">{{ $order->mac_address }}</div>
-                                        <div class="text-[#2C5270]">{{ $order->brand_router }} &middot; Kabel: {{ $order->jarak_kabel }}</div>
-                                        <div class="mt-0.5 font-mono text-[#06233B]">
-                                            ODP: {{ $order->signal_odp }} | ONT: {{ $order->signal_ont }}
-                                        </div>
-                                    </td>
+                                <td class="px-4 py-3.5 text-xs">
+                                    <div class="font-bold text-[#06233B]">Sales: {{ $order->sales?->kode_sales_ip ?? 'TANPA SALES' }}</div>
+                                    <div class="mt-0.5 text-[#2C5270]">Teknisi: <span class="font-bold text-[#06233B]">{{ $order->nama_teknisi }}</span></div>
+                                </td>
 
-                                    <td class="px-4 py-3.5 text-xs">
-                                        <div class="font-bold text-[#06233B]">Sales: {{ $order->sales?->kode_sales_ip ?? '-' }}</div>
-                                        <div class="mt-0.5 text-[#2C5270]">Teknisi: <strong class="text-[#06233B]">{{ $order->nama_teknisi }}</strong></div>
-                                    </td>
-
-                                    <td class="whitespace-nowrap px-4 py-3.5 font-mono text-xs text-[#2C5270]">
-                                        <div class="font-bold text-[#06233B]">{{ $order->created_at?->format('d/m/Y') }}</div>
-                                        <div>{{ $order->created_at?->format('H:i:s') }}</div>
-                                    </td>
-                                </tr>
+                                <td class="whitespace-nowrap px-4 py-3.5 font-mono text-xs text-[#2C5270]">
+                                    <div class="font-bold text-[#06233B]">{{ $order->created_at?->format('d/m/Y') }}</div>
+                                    <div>{{ $order->created_at?->format('H:i:s') }}</div>
+                                </td>
+                            </tr>
                             @empty
-                                <tr>
-                                    <td colspan="7" class="px-6 py-12 text-center">
-                                        <div class="text-sm font-bold text-[#06233B]">
-                                            Belum ada catatan instalasi PSB yang sesuai dengan kriteria pencarian ini.
-                                        </div>
-                                        <p class="mt-1 text-xs text-[#2C5270]">
-                                            Mulai tambahkan instalasi pelanggan baru melalui formulir teknisi atau ubah filter pencarian di atas.
-                                        </p>
-                                        <div class="mt-4">
-                                            <a
-                                                href="{{ route('psb.create') }}"
-                                                class="inline-flex min-h-[44px] items-center rounded-xl bg-[#005F99] px-4 py-2 text-xs font-bold text-white hover:bg-[#054A78]"
-                                            >
-                                                Buka Form Input PSB Baru
-                                            </a>
-                                        </div>
-                                    </td>
-                                </tr>
+                            <tr>
+                                <td colspan="7" class="px-6 py-12 text-center">
+                                    <div class="text-sm font-bold text-[#06233B]">
+                                        Belum ada catatan pemasangan PSB yang cocok dengan saringan ini.
+                                    </div>
+                                    <p class="mt-1 text-xs text-[#2C5270]">
+                                        Ubah kriteria pencarian di atas atau tambahkan pemasangan baru melalui formulir teknisi.
+                                    </p>
+                                    <div class="mt-4">
+                                        <a
+                                            href="{{ route('psb.create') }}"
+                                            class="inline-flex min-h-[44px] items-center rounded-xl bg-[#005F99] px-4 py-2 text-xs font-bold text-white hover:bg-[#054A78]">
+                                            Buka Form Input PSB Baru
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
                             @endforelse
                         </tbody>
                     </table>
                 </div>
 
                 @if ($orders->hasPages())
-                    <div class="border-t border-[#B8D4EC] bg-[#EDF5FC] px-4 py-3">
-                        {{ $orders->links() }}
-                    </div>
+                <div class="border-t border-[#B8D4EC] bg-[#EDF5FC] px-4 py-3">
+                    {{ $orders->links() }}
+                </div>
                 @endif
             </div>
         </div>
 
-        <!-- Right Operational Rail: Router IP Slot Capacity Monitor (3 Columns on Desktop, 2-col Grid on Tablet) -->
         <aside class="rounded-2xl border-[1.5px] border-[#5B82A6] bg-white p-4 shadow-sm xl:col-span-3">
             <div class="flex items-center justify-between border-b border-[#B8D4EC] pb-3">
-                <div>
-                    <div class="font-mono text-[11px] font-bold uppercase text-[#005F99]">Monitor Kapasitas</div>
-                    <h2 class="text-sm font-extrabold text-[#06233B]">Slot IP Router Distribusi</h2>
-                </div>
+                <h2 class="text-sm font-extrabold text-[#06233B]">Slot IP Router Distribusi</h2>
                 <a
                     href="{{ route('admin.slots.index') }}"
-                    class="inline-flex min-h-[36px] items-center rounded-lg border border-[#5B82A6] bg-[#EDF5FC] px-2.5 py-1 text-xs font-bold text-[#005F99] hover:bg-[#E0F2FE]"
-                >
+                    class="inline-flex min-h-[44px] items-center rounded-lg border border-[#5B82A6] bg-[#EDF5FC] px-3 py-2 text-xs font-bold text-[#005F99] hover:bg-[#E0F2FE]">
                     Semua Slot
                 </a>
             </div>
 
             <div class="mt-3.5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-1">
                 @forelse ($distributionRouters as $router)
-                    <div class="rounded-xl border border-[#B8D4EC] bg-[#EDF5FC] p-3">
-                        <div class="flex items-start justify-between gap-2">
-                            <div>
-                                <div class="text-xs font-extrabold text-[#06233B]">{{ $router->nama_router }}</div>
-                                <div class="font-mono text-[11px] text-[#2C5270]">
-                                    {{ $router->ip_host }}
-                                    @if ($router->sales->isNotEmpty())
-                                        &middot; Sales: <strong>{{ $router->sales->pluck('kode_sales_ip')->join(', ') }}</strong>
-                                    @endif
-                                </div>
+                <div class="rounded-xl border border-[#B8D4EC] bg-[#EDF5FC] p-3.5">
+                    <div class="flex items-start justify-between gap-2">
+                        <div>
+                            <div class="text-xs font-extrabold text-[#06233B]">{{ $router->nama_router }}</div>
+                            <div class="font-mono text-[11px] text-[#2C5270]">
+                                {{ $router->ip_host }}
+                                @if ($router->sales->isNotEmpty())
+                                &middot; Sales: {{ $router->sales->pluck('kode_sales_ip')->join(', ') }}
+                                @endif
                             </div>
-                            <span class="inline-flex shrink-0 items-center rounded border border-[#059669] bg-[#D1FAE5] px-2 py-0.5 font-mono text-xs font-bold text-[#065F46]">
-                                {{ $router->available_slots_count }} Kosong
-                            </span>
                         </div>
+                        <span class="inline-flex shrink-0 items-center rounded border border-[#059669] bg-[#D1FAE5] px-2 py-0.5 font-mono text-xs font-bold text-[#065F46]">
+                            {{ $router->available_slots_count }} Kosong
+                        </span>
+                    </div>
 
-                        <div class="mt-2 flex items-center justify-between border-t border-[#B8D4EC] pt-2 text-[11px] text-[#2C5270]">
-                            <span>Terpakai: <strong class="font-mono text-[#06233B]">{{ $router->used_slots_count }}</strong> slot</span>
-                            <form method="POST" action="{{ route('admin.slots.sync') }}">
-                                @csrf
-                                <input type="hidden" name="router_id" value="{{ $router->id }}">
-                                <button
-                                    type="submit"
-                                    class="font-bold text-[#005F99] underline hover:text-[#054A78]"
-                                >
-                                    Sync Router
-                                </button>
-                            </form>
-                        </div>
+                    <div class="mt-2.5 flex items-center justify-between border-t border-[#B8D4EC] pt-2.5 text-xs text-[#2C5270]">
+                        <span>Terpakai: <span class="font-mono font-bold text-[#06233B]">{{ $router->used_slots_count }}</span> slot</span>
+                        <form method="POST" action="{{ route('admin.slots.sync') }}">
+                            @csrf
+                            <input type="hidden" name="router_id" value="{{ $router->id }}">
+                            <button
+                                type="submit"
+                                class="inline-flex min-h-[44px] items-center rounded-lg border border-[#5B82A6] bg-white px-3 py-1.5 text-xs font-bold text-[#005F99] hover:bg-[#005F99] hover:text-white active:bg-[#043A5E]">
+                                Sync Router
+                            </button>
+                        </form>
                     </div>
+                </div>
                 @empty
-                    <div class="rounded-xl border border-[#B8D4EC] bg-[#EDF5FC] p-4 text-xs text-[#2C5270]">
-                        Belum ada router distribusi terdaftar. Tambahkan router distribusi di menu <strong>Master Router</strong>.
-                    </div>
+                <div class="rounded-xl border border-[#B8D4EC] bg-[#EDF5FC] p-4 text-xs text-[#2C5270]">
+                    Belum ada router distribusi terdaftar. Tambahkan router distribusi melalui menu Master Router.
+                </div>
                 @endforelse
             </div>
         </aside>
+    </div>
+
+    <div
+        x-show="activePhotoModal !== null"
+        x-cloak
+        @keydown.escape.window="activePhotoModal = null"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-[#06233B]/80 p-4"
+        role="dialog"
+        aria-modal="true">
+        <template x-if="activePhotoModal">
+            <div class="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-2xl border-2 border-[#005F99] bg-white p-5 shadow-2xl sm:p-6">
+                <div class="flex items-center justify-between border-b border-[#B8D4EC] pb-3">
+                    <div>
+                        <h3 class="text-base font-extrabold text-[#06233B]" x-text="'Dokumentasi 5 Foto PSB: ' + activePhotoModal.nama_pelanggan"></h3>
+                        <p class="text-xs font-medium text-[#2C5270]" x-text="'ODP: ' + activePhotoModal.odp"></p>
+                    </div>
+                    <button
+                        type="button"
+                        @click="activePhotoModal = null"
+                        class="min-h-[44px] rounded-lg border-[1.5px] border-[#5B82A6] bg-[#EDF5FC] px-4 py-2 text-xs font-bold text-[#06233B] hover:bg-[#E0F2FE]">
+                        Tutup
+                    </button>
+                </div>
+
+                <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    <template x-for="photo in activePhotoModal.photos" :key="photo.label">
+                        <div class="flex flex-col justify-between rounded-xl border border-[#5B82A6] bg-[#EDF5FC] p-3">
+                            <div>
+                                <div class="text-xs font-bold text-[#06233B]" x-text="photo.label"></div>
+                                <a :href="photo.url" target="_blank" rel="noopener noreferrer" class="mt-2 block overflow-hidden rounded-lg border border-[#B8D4EC] bg-white">
+                                    <img :src="photo.url" :alt="photo.label" class="h-44 w-full object-cover">
+                                </a>
+                            </div>
+                            <a
+                                :href="photo.url"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="mt-2.5 inline-flex min-h-[44px] items-center justify-center rounded-lg bg-[#005F99] px-3 py-2 text-xs font-bold text-white hover:bg-[#054A78]">
+                                Buka Ukuran Penuh
+                            </a>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </template>
     </div>
 </div>
 @endsection

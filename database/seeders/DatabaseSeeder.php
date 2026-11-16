@@ -16,13 +16,9 @@ use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
-    /**
-     * Seed the application's database with realistic ISP PSB master data.
-     */
     public function run(): void
     {
-        // 1. Seed 5 Telegram Groups (1 ALL TEAM PSB + 4 TEAM PSB ONLY)
-        $allTeamGroup = TelegramGroup::updateOrCreate(
+        TelegramGroup::updateOrCreate(
             ['nama_grup' => 'ALL TEAM PSB'],
             [
                 'chat_id' => '-1001000000001',
@@ -43,7 +39,6 @@ class DatabaseSeeder extends Seeder
             );
         }
 
-        // 2. Seed Users (Admin + Technicians per team + Non-team technician)
         User::updateOrCreate(
             ['username' => 'admin'],
             [
@@ -76,7 +71,6 @@ class DatabaseSeeder extends Seeder
             );
         }
 
-        // 3. Seed Sample Routers (1 Central PPPoE Server + 6 Per-Sales Distribution Routers)
         Router::updateOrCreate(
             ['nama_router' => 'CCR-PPPOE-PUSAT'],
             [
@@ -113,7 +107,6 @@ class DatabaseSeeder extends Seeder
             );
             $distRouters[$key] = $router;
 
-            // Pre-populate realistic Simple Queue IP slots per distribution router
             $oct3 = $rData['subnet_oct3'];
             for ($oct4 = 190; $oct4 <= 195; $oct4++) {
                 $ip = "172.16.{$oct3}.{$oct4}";
@@ -133,7 +126,6 @@ class DatabaseSeeder extends Seeder
             }
         }
 
-        // 4. Seed Sales (PAY, KD, PN, JN, JB)
         $salesData = [
             ['kode_ip' => 'PAY', 'kode_pppoe' => '01', 'nama' => 'Sales PAY', 'router' => $distRouters['PAY']->id],
             ['kode_ip' => 'KD',  'kode_pppoe' => '02', 'nama' => 'Sales KD',  'router' => $distRouters['KD']->id],
@@ -153,7 +145,6 @@ class DatabaseSeeder extends Seeder
             );
         }
 
-        // 5. Seed Pakets
         $paketsData = [
             ['nama_paket' => '10mbps', 'queue_max_limit' => '10M/10M', 'pppoe_profile' => 'PAKET-10M'],
             ['nama_paket' => '15mbps', 'queue_max_limit' => '15M/15M', 'pppoe_profile' => 'PAKET-15M'],
@@ -172,7 +163,6 @@ class DatabaseSeeder extends Seeder
             );
         }
 
-        // 6. Seed ODPs (Both 'upgrade' [PPPoE] and 'belum_upgrade' [Static IP])
         $odpsData = [
             ['nama_odp' => 'U15 B', 'kode_odp' => '12', 'status_upgrade' => 'upgrade',       'last_seq' => 767],
             ['nama_odp' => 'U15 A', 'kode_odp' => '12', 'status_upgrade' => 'upgrade',       'last_seq' => 120],

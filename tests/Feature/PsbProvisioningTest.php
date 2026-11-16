@@ -15,8 +15,10 @@ use App\Models\User;
 use App\Services\MikrotikProvisionerService;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use Mockery;
 use RouterOS\Interfaces\ClientInterface;
 use RouterOS\Interfaces\QueryInterface;
@@ -33,6 +35,23 @@ class PsbProvisioningTest extends TestCase
         $this->seed(DatabaseSeeder::class);
         Config::set('services.telegram.bot_token', 'test-bot-token');
         Config::set('services.mikrotik.pppoe_default_password', 'psb12345');
+        Storage::fake('public');
+    }
+
+    /**
+     * Build the 5 mandatory fake photo uploads for PSB form tests.
+     *
+     * @return array<string, UploadedFile>
+     */
+    private function fakeMandatoryPhotos(): array
+    {
+        return [
+            'foto_mac_ont' => UploadedFile::fake()->image('mac_ont.jpg', 600, 400),
+            'foto_odp' => UploadedFile::fake()->image('odp.jpg', 600, 400),
+            'foto_kertas_registrasi' => UploadedFile::fake()->image('registrasi.jpg', 600, 400),
+            'foto_ktp_pelanggan' => UploadedFile::fake()->image('ktp.jpg', 600, 400),
+            'foto_rumah_pelanggan' => UploadedFile::fake()->image('rumah.jpg', 600, 400),
+        ];
     }
 
     public function test_mac_address_and_technician_normalization(): void
@@ -51,6 +70,38 @@ class PsbProvisioningTest extends TestCase
             'andri',
             MikrotikProvisionerService::formatTechnicianName('andri', '')
         );
+    }
+
+    public function test_psb_submission_requires_shareloc_and_five_mandatory_photos(): void
+    {
+        $user = User::where('username', 'andri')->firstOrFail();
+        $odp = Odp::where('nama_odp', 'U15 B')->firstOrFail();
+        $paket = Paket::where('nama_paket', '10mbps')->firstOrFail();
+        $sale = Sale::where('kode_sales_ip', 'KD')->firstOrFail();
+
+        $response = $this->actingAs($user)->post('/psb', [
+            'nama_pelanggan' => 'Astoni',
+            'alamat' => 'Jl. Merdeka No. 10',
+            'no_tlp' => '08123456789',
+            'odp_id' => $odp->id,
+            'port' => 5,
+            'paket_id' => $paket->id,
+            'mac_address' => 'f814fe876d0a',
+            'brand_router' => 'ZTE F609',
+            'jarak_kabel' => '100m',
+            'signal_odp' => '-17.1',
+            'signal_ont' => '-18.4',
+            'sales_id' => $sale->id,
+        ]);
+
+        $response->assertSessionHasErrors([
+            'shareloc',
+            'foto_mac_ont',
+            'foto_odp',
+            'foto_kertas_registrasi',
+            'foto_ktp_pelanggan',
+            'foto_rumah_pelanggan',
+        ]);
     }
 
     public function test_login_requires_active_user_and_sets_remember_cookie(): void
@@ -117,9 +168,10 @@ class PsbProvisioningTest extends TestCase
 
         $this->app->instance(MikrotikProvisionerService::class, $mockProvisioner);
 
-        $response = $this->actingAs($user)->post('/psb', [
+        $response = $this->actingAs($user)->post('/psb', array_merge([
             'nama_pelanggan' => 'Astoni!',
             'alamat' => 'Jl. Merdeka No. 10',
+            'shareloc' => 'https://www.google.com/maps?q=-6.200000,106.816666',
             'no_tlp' => '08123456789',
             'odp_id' => $odp->id,
             'port' => 5,
@@ -131,7 +183,7 @@ class PsbProvisioningTest extends TestCase
             'signal_ont' => '-18.4',
             'sales_id' => $sale->id,
             'rekan_teknisi' => 'nopal',
-        ]);
+        ], $this->fakeMandatoryPhotos()));
 
         $response->assertRedirect(route('psb.create'));
 
@@ -141,13 +193,26 @@ class PsbProvisioningTest extends TestCase
         $this->assertSame('12_01_02_00768_ASTONI', $order->hasil_poe_ip);
         $this->assertSame('F8:14:FE:87:6D:0A', $order->mac_address);
         $this->assertSame('andri&nopal', $order->nama_teknisi);
+        $this->assertSame('https://www.google.com/maps?q=-6.200000,106.816666', $order->shareloc);
         $this->assertSame(768, $odp->fresh()->last_seq);
+
+        Storage::disk('public')->assertExists($order->foto_mac_ont);
+        Storage::disk('public')->assertExists($order->foto_odp);
+        Storage::disk('public')->assertExists($order->foto_kertas_registrasi);
+        Storage::disk('public')->assertExists($order->foto_ktp_pelanggan);
+        Storage::disk('public')->assertExists($order->foto_rumah_pelanggan);
 
         $team1Group = TelegramGroup::where('nama_grup', 'TEAM 1')->firstOrFail();
         Http::assertSent(function ($request) use ($team1Group): bool {
-            return $request['chat_id'] === $team1Group->chat_id
+            return str_contains($request->url(), '/sendMessage')
+                && $request['chat_id'] === $team1Group->chat_id
                 && str_contains($request['text'], 'POE/IP       : 12_01_02_00768_ASTONI')
+                && str_contains($request['text'], 'SHARELOC     : https://www.google.com/maps?q=-6.200000,106.816666')
                 && ! str_contains($request['text'], '[NON-TIM PSB]');
+        });
+
+        Http::assertSent(function ($request): bool {
+            return str_contains($request->url(), '/sendMediaGroup');
         });
     }
 
@@ -163,9 +228,6 @@ class PsbProvisioningTest extends TestCase
         $sale = Sale::where('kode_sales_ip', 'KD')->firstOrFail();
         $router = $sale->ipRouter;
 
-        // Clear seeded slots for KD router and create 2 specific slots:
-        // Slot 1 (172.16.103.190) -> Will fail live check because it has Static ARP
-        // Slot 2 (172.16.103.191) -> Will pass all 3 live checks and have 1 dynamic ARP to clean
         RouterIpSlot::where('router_id', $router->id)->delete();
 
         $slot1 = RouterIpSlot::create([
@@ -204,11 +266,9 @@ class PsbProvisioningTest extends TestCase
 
                 if ($endpoint === '/ip/arp/print') {
                     if (in_array('?address=172.16.103.190', $attrs, true)) {
-                        // Static ARP exists -> must fail live check!
                         return [['.id' => '*A1', 'address' => '172.16.103.190', 'dynamic' => 'false']];
                     }
                     if (in_array('?address=172.16.103.191', $attrs, true)) {
-                        // Dynamic ARP only -> passes check, and dynamic entry *A2 should be removed
                         return [['.id' => '*A2', 'address' => '172.16.103.191', 'dynamic' => 'true']];
                     }
                 }
@@ -222,9 +282,10 @@ class PsbProvisioningTest extends TestCase
 
         $this->app->instance(MikrotikProvisionerService::class, $mockProvisioner);
 
-        $response = $this->actingAs($user)->post('/psb', [
+        $response = $this->actingAs($user)->post('/psb', array_merge([
             'nama_pelanggan' => 'Nurhaida',
             'alamat' => 'Jl. Sudirman 45',
+            'shareloc' => 'https://maps.app.goo.gl/nurhaida123',
             'no_tlp' => '081299998888',
             'odp_id' => $odp->id,
             'port' => 8,
@@ -235,7 +296,7 @@ class PsbProvisioningTest extends TestCase
             'signal_odp' => '-16.5',
             'signal_ont' => '-17.8',
             'sales_id' => $sale->id,
-        ]);
+        ], $this->fakeMandatoryPhotos()));
 
         $response->assertRedirect(route('psb.create'));
 
@@ -244,7 +305,6 @@ class PsbProvisioningTest extends TestCase
         $this->assertSame('static_ip', $order->tipe_koneksi);
         $this->assertSame('172.16.103.191', $order->hasil_poe_ip);
 
-        // Slot 1 was marked used because of static ARP, Slot 2 was claimed by this order
         $this->assertSame('used', $slot1->fresh()->status);
         $this->assertNull($slot1->fresh()->psb_order_id);
 
@@ -252,10 +312,10 @@ class PsbProvisioningTest extends TestCase
         $this->assertSame('KD-103191-NURHAIDA', $slot2->fresh()->queue_name);
         $this->assertSame($order->id, $slot2->fresh()->psb_order_id);
 
-        // Non-team user routes to ALL TEAM PSB with [NON-TIM PSB] prefix
         $allTeamGroup = TelegramGroup::where('is_all_team', true)->firstOrFail();
         Http::assertSent(function ($request) use ($allTeamGroup): bool {
-            return $request['chat_id'] === $allTeamGroup->chat_id
+            return str_contains($request->url(), '/sendMessage')
+                && $request['chat_id'] === $allTeamGroup->chat_id
                 && str_starts_with($request['text'], "[NON-TIM PSB]\n")
                 && str_contains($request['text'], 'POE/IP       : 172.16.103.191');
         });
@@ -279,9 +339,10 @@ class PsbProvisioningTest extends TestCase
 
         $this->app->instance(MikrotikProvisionerService::class, $mockProvisioner);
 
-        $this->actingAs($user)->post('/psb', [
+        $this->actingAs($user)->post('/psb', array_merge([
             'nama_pelanggan' => 'Pelanggan Fallback',
             'alamat' => 'Jl. Veteran 12',
+            'shareloc' => 'https://www.google.com/maps?q=-6.21,106.82',
             'no_tlp' => '081111222333',
             'odp_id' => $odp->id,
             'port' => 3,
@@ -292,7 +353,7 @@ class PsbProvisioningTest extends TestCase
             'signal_odp' => '-19.0',
             'signal_ont' => '-20.1',
             'sales_id' => $sale->id,
-        ]);
+        ], $this->fakeMandatoryPhotos()));
 
         $order = PsbOrder::latest('id')->firstOrFail();
         $this->assertSame('failed', $order->status_sync);
@@ -300,7 +361,8 @@ class PsbProvisioningTest extends TestCase
         $this->assertStringContainsString('Connection timed out', (string) $order->error_log);
 
         Http::assertSent(function ($request): bool {
-            return str_contains($request['text'], 'POE/IP       : ⚠️ GAGAL AUTO-CONFIG (CEK NOC)');
+            return str_contains($request->url(), '/sendMessage')
+                && str_contains($request['text'], 'POE/IP       : ⚠️ GAGAL AUTO-CONFIG (CEK NOC)');
         });
     }
 
@@ -353,13 +415,9 @@ class PsbProvisioningTest extends TestCase
 
                 if ($endpoint === '/queue/simple/print') {
                     return [
-                        // 1. Valid available slot
                         ['.id' => '*10', 'name' => 'CLIENT-94200', 'target' => '172.16.94.200/32'],
-                        // 2. Has static ARP -> should be marked used
                         ['.id' => '*11', 'name' => 'CLIENT-94201', 'target' => '172.16.94.201/32'],
-                        // 3. Is in EXPIRED address list -> should be marked used
                         ['.id' => '*12', 'name' => 'CLIENT-94202', 'target' => '172.16.94.202/32'],
-                        // 4. Already named after customer -> should be marked used
                         ['.id' => '*13', 'name' => 'PAY-94203-BUDI', 'target' => '172.16.94.203/32'],
                     ];
                 }
@@ -435,6 +493,7 @@ class PsbProvisioningTest extends TestCase
         $pages = [
             route('psb.create'),
             route('admin.dashboard'),
+            route('admin.riwayat.index'),
             route('admin.slots.index'),
             route('admin.odps.index'),
             route('admin.routers.index'),
@@ -450,5 +509,109 @@ class PsbProvisioningTest extends TestCase
                 ->assertOk()
                 ->assertSee('#005F99', false);
         }
+    }
+
+    public function test_history_and_recapitulation_filters_by_period_and_sales_vs_tanpa_sales(): void
+    {
+        Http::fake([
+            'https://api.telegram.org/*' => Http::response(['ok' => true], 200),
+        ]);
+
+        $admin = User::where('username', 'admin')->firstOrFail();
+        $odp = Odp::where('nama_odp', 'U15 B')->firstOrFail();
+        $paket = Paket::where('nama_paket', '10mbps')->firstOrFail();
+        $sale = Sale::where('kode_sales_ip', 'PAY')->firstOrFail();
+
+        // Create 1 order WITH sales (PAY) and 1 order WITHOUT sales (Tanpa Sales)
+        PsbOrder::create([
+            'user_id' => $admin->id,
+            'nama_pelanggan' => 'Pelanggan Dengan Sales PAY',
+            'alamat' => 'Jl. Mawar 1',
+            'shareloc' => 'https://maps.google.com/?q=-6.1,106.8',
+            'no_tlp' => '0811111111',
+            'odp_id' => $odp->id,
+            'port' => 1,
+            'paket_id' => $paket->id,
+            'mac_address' => 'AA:BB:CC:DD:EE:01',
+            'brand_router' => 'ZTE',
+            'jarak_kabel' => '50m',
+            'signal_odp' => '-16',
+            'signal_ont' => '-17',
+            'sales_id' => $sale->id,
+            'nama_teknisi' => 'andri',
+            'foto_mac_ont' => 'psb-photos/mac.jpg',
+            'foto_odp' => 'psb-photos/odp.jpg',
+            'foto_kertas_registrasi' => 'psb-photos/reg.jpg',
+            'foto_ktp_pelanggan' => 'psb-photos/ktp.jpg',
+            'foto_rumah_pelanggan' => 'psb-photos/rumah.jpg',
+            'tipe_koneksi' => 'pppoe',
+            'hasil_poe_ip' => '12_01_01_00768_PELANGGAN_SALES',
+            'status_sync' => 'success',
+        ]);
+
+        PsbOrder::create([
+            'user_id' => $admin->id,
+            'nama_pelanggan' => 'Pelanggan Kantor Tanpa Sales',
+            'alamat' => 'Jl. Melati 2',
+            'shareloc' => 'https://maps.google.com/?q=-6.2,106.9',
+            'no_tlp' => '0822222222',
+            'odp_id' => $odp->id,
+            'port' => 2,
+            'paket_id' => $paket->id,
+            'mac_address' => 'AA:BB:CC:DD:EE:02',
+            'brand_router' => 'Huawei',
+            'jarak_kabel' => '75m',
+            'signal_odp' => '-16',
+            'signal_ont' => '-17',
+            'sales_id' => null,
+            'nama_teknisi' => 'budi',
+            'foto_mac_ont' => 'psb-photos/mac2.jpg',
+            'foto_odp' => 'psb-photos/odp2.jpg',
+            'foto_kertas_registrasi' => 'psb-photos/reg2.jpg',
+            'foto_ktp_pelanggan' => 'psb-photos/ktp2.jpg',
+            'foto_rumah_pelanggan' => 'psb-photos/rumah2.jpg',
+            'tipe_koneksi' => 'pppoe',
+            'hasil_poe_ip' => '12_01_00_00769_PELANGGAN_KANTOR',
+            'status_sync' => 'success',
+        ]);
+
+        // Filter: Tanpa Sales + Harian
+        $this->actingAs($admin)
+            ->get(route('admin.riwayat.index', [
+                'periode' => 'harian',
+                'tanggal_harian' => now()->toDateString(),
+                'filter_sales' => 'tanpa_sales',
+            ]))
+            ->assertOk()
+            ->assertSee('Pelanggan Kantor Tanpa Sales')
+            ->assertDontSee('Pelanggan Dengan Sales PAY');
+
+        // Filter: Dengan Sales + Bulanan
+        $this->actingAs($admin)
+            ->get(route('admin.riwayat.index', [
+                'periode' => 'bulanan',
+                'bulan' => now()->month,
+                'tahun' => now()->year,
+                'filter_sales' => 'dengan_sales',
+            ]))
+            ->assertOk()
+            ->assertSee('Pelanggan Dengan Sales PAY')
+            ->assertDontSee('Pelanggan Kantor Tanpa Sales');
+
+        // Filter: Mingguan, Tahunan, Rentang Tanggal & CSV Export
+        $this->actingAs($admin)
+            ->get(route('admin.riwayat.index', ['periode' => 'mingguan', 'minggu' => now()->format('o-\WW')]))
+            ->assertOk()
+            ->assertSee('Pelanggan Kantor Tanpa Sales');
+
+        $this->actingAs($admin)
+            ->get(route('admin.riwayat.index', ['periode' => 'tahunan', 'tahun' => now()->year]))
+            ->assertOk()
+            ->assertSee('Pelanggan Dengan Sales PAY');
+
+        $this->actingAs($admin)
+            ->get(route('admin.riwayat.export', ['filter_sales' => 'tanpa_sales']))
+            ->assertOk()
+            ->assertHeader('Content-Type', 'text/csv; charset=UTF-8');
     }
 }

@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\HistoryController;
 use App\Http\Controllers\Admin\OdpController;
 use App\Http\Controllers\Admin\PaketController;
 use App\Http\Controllers\Admin\RouterController;
@@ -40,6 +41,8 @@ Route::middleware(['auth', 'active'])->group(function (): void {
         ->group(function (): void {
             Route::get('/', fn () => redirect()->route('admin.dashboard'));
             Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+            Route::get('/riwayat', [HistoryController::class, 'index'])->name('riwayat.index');
+            Route::get('/riwayat/export', [HistoryController::class, 'export'])->name('riwayat.export');
             Route::post('/orders/{order}/retry', [DashboardController::class, 'retryProvisioning'])
                 ->name('orders.retry');
             Route::post('/slots/sync', [DashboardController::class, 'syncSlots'])

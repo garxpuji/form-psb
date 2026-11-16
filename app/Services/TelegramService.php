@@ -9,18 +9,13 @@ use App\Models\TelegramGroup;
 use App\Models\User;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use RuntimeException;
 
 class TelegramService
 {
     public const FAILED_POE_IP_LABEL = '⚠️ GAGAL AUTO-CONFIG (CEK NOC)';
 
-    /**
-     * Resolve the target Telegram group for the given user according to PSB routing rules:
-     * - If $user->telegram_group_id is set and points to a group with is_all_team = false,
-     *   route ONLY to that specific team group.
-     * - Otherwise, route ONLY to the ALL TEAM PSB group (is_all_team = true).
-     */
     public function resolveTargetGroup(User $user): TelegramGroup
     {
         $user->loadMissing('telegramGroup');
@@ -38,9 +33,6 @@ class TelegramService
         return $allTeamGroup;
     }
 
-    /**
-     * Determine whether the message should be prefixed with "[NON-TIM PSB]\n".
-     */
     public function isNonTeamUser(User $user): bool
     {
         $user->loadMissing('telegramGroup');
@@ -50,9 +42,6 @@ class TelegramService
             || $user->telegramGroup->is_all_team;
     }
 
-    /**
-     * Build the exact formatted Telegram PSB installation report message.
-     */
     public function formatOrderMessage(PsbOrder $order, ?User $user = null): string
     {
         $order->loadMissing(['odp', 'paket', 'sales', 'user.telegramGroup']);
@@ -65,6 +54,7 @@ class TelegramService
         $lines = [
             "NAMA         : {$order->nama_pelanggan}",
             "Alamat.      : {$order->alamat}",
+            "SHARELOC     : {$order->shareloc}",
             "NO.TLP       : {$order->no_tlp}",
             "ODP          : {$order->odp?->nama_odp}",
             "PORT         : {$order->port}",
@@ -75,7 +65,7 @@ class TelegramService
             "JARAK KABEL  : {$order->jarak_kabel}",
             "SIGNAL ODP   : {$order->signal_odp}",
             "SIGNAL ONT   : {$order->signal_ont}",
-            "SALES        : {$order->sales?->kode_sales_ip}",
+            'SALES        : ' . ($order->sales?->kode_sales_ip ?? 'TANPA SALES'),
             "NAMA TEKNISI : {$order->nama_teknisi}",
             '[AUTO-NOC]',
         ];
@@ -89,9 +79,6 @@ class TelegramService
         return $body;
     }
 
-    /**
-     * Send the PSB installation report to the appropriate Telegram group.
-     */
     public function sendPsbReport(PsbOrder $order, ?User $user = null): bool
     {
         $order->loadMissing(['user.telegramGroup', 'odp', 'paket', 'sales']);
@@ -108,11 +95,19 @@ class TelegramService
             $group = $this->resolveTargetGroup($targetUser);
             $message = $this->formatOrderMessage($order, $targetUser);
 
-            return $this->sendMessage(
+            $sentText = $this->sendMessage(
                 chatId: $group->chat_id,
                 text: $message,
                 threadId: $group->thread_id,
             );
+
+            $this->sendOrderPhotosAlbum(
+                order: $order,
+                chatId: $group->chat_id,
+                threadId: $group->thread_id,
+            );
+
+            return $sentText;
         } catch (\Throwable $e) {
             Log::error('TelegramService: Gagal mengirim laporan PSB ke Telegram.', [
                 'order_id' => $order->id,
@@ -123,9 +118,81 @@ class TelegramService
         }
     }
 
-    /**
-     * Send a raw message to a Telegram chat ID (with optional topic thread ID and reply message ID).
-     */
+    public function sendOrderPhotosAlbum(PsbOrder $order, string|int $chatId, ?int $threadId = null): bool
+    {
+        $botToken = trim((string) config('services.telegram.bot_token', ''));
+        if ($botToken === '') {
+            return false;
+        }
+
+        $photoFields = [
+            'foto_mac_ont' => '1. Foto MAC ONT',
+            'foto_odp' => '2. Foto ODP',
+            'foto_kertas_registrasi' => '3. Foto Kertas Registrasi',
+            'foto_ktp_pelanggan' => '4. Foto KTP Pelanggan',
+            'foto_rumah_pelanggan' => '5. Foto Rumah Pelanggan',
+        ];
+
+        $disk = Storage::disk('public');
+        $mediaItems = [];
+        $attachments = [];
+        $index = 0;
+
+        foreach ($photoFields as $field => $label) {
+            $relPath = (string) ($order->{$field} ?? '');
+            if ($relPath === '' || ! $disk->exists($relPath)) {
+                continue;
+            }
+
+            $attachKey = "photo_{$index}";
+            $attachments[$attachKey] = [
+                'contents' => $disk->get($relPath),
+                'filename' => basename($relPath),
+            ];
+
+            $mediaItems[] = [
+                'type' => 'photo',
+                'media' => "attach://{$attachKey}",
+                'caption' => "{$label} - {$order->nama_pelanggan} ({$order->odp?->nama_odp} P:{$order->port})",
+            ];
+            $index++;
+        }
+
+        if ($mediaItems === []) {
+            return false;
+        }
+
+        $timeout = (int) config('services.telegram.timeout', 15);
+        $url = "https://api.telegram.org/bot{$botToken}/sendMediaGroup";
+
+        $request = Http::timeout($timeout)->asMultipart();
+        foreach ($attachments as $key => $fileData) {
+            $request = $request->attach($key, $fileData['contents'], $fileData['filename']);
+        }
+
+        $payload = [
+            'chat_id' => (string) $chatId,
+            'media' => json_encode($mediaItems),
+        ];
+
+        if ($threadId !== null && $threadId > 0) {
+            $payload['message_thread_id'] = (string) $threadId;
+        }
+
+        $response = $request->post($url, $payload);
+
+        if (! $response->successful()) {
+            Log::warning('TelegramService: Gagal mengirim album foto PSB ke Telegram.', [
+                'order_id' => $order->id,
+                'status' => $response->status(),
+                'body' => $response->body(),
+            ]);
+            return false;
+        }
+
+        return true;
+    }
+
     public function sendMessage(
         string|int $chatId,
         string $text,

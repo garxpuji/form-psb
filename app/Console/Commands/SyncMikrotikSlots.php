@@ -13,23 +13,10 @@ use RouterOS\Query;
 
 class SyncMikrotikSlots extends Command
 {
-    /**
-     * The name and signature of the console command.
-     *
-     * @var string
-     */
     protected $signature = 'mikrotik:sync-slots {--router_id= : ID router distribusi spesifik yang ingin disinkronkan}';
 
-    /**
-     * The console command description.
-     *
-     * @var string
-     */
     protected $description = 'Sinkronisasi slot IP Simple Queue dari router distribusi MikroTik (non-PPPoE) secara bulk';
 
-    /**
-     * Execute the console command.
-     */
     public function handle(MikrotikProvisionerService $provisioner): int
     {
         $routerIdOption = $this->option('router_id');
@@ -55,18 +42,13 @@ class SyncMikrotikSlots extends Command
             try {
                 $client = $provisioner->createClient($router);
 
-                // 1. Bulk API Call #1: Fetch all Simple Queues
+                // Fetch queues, ARP table, and EXPIRED list in 3 bulk calls to avoid per-IP query overhead.
                 $queues = $provisioner->queryAndRead($client, new Query('/queue/simple/print'));
-
-                // 2. Bulk API Call #2: Fetch all ARP entries
                 $arpEntries = $provisioner->queryAndRead($client, new Query('/ip/arp/print'));
-
-                // 3. Bulk API Call #3: Fetch all EXPIRED firewall address-list entries
                 $expiredQuery = (new Query('/ip/firewall/address-list/print'))
                     ->where('list', 'EXPIRED');
                 $expiredEntries = $provisioner->queryAndRead($client, $expiredQuery);
 
-                // Build O(1) lookup set for Static ARP IPs (dynamic === 'false')
                 $staticArpIps = [];
                 foreach ($arpEntries as $arp) {
                     if (! is_array($arp) || empty($arp['address'])) {
@@ -79,7 +61,6 @@ class SyncMikrotikSlots extends Command
                     }
                 }
 
-                // Build O(1) lookup set for active EXPIRED IPs (disabled === 'false')
                 $activeExpiredIps = [];
                 foreach ($expiredEntries as $entry) {
                     if (! is_array($entry) || empty($entry['address'])) {
@@ -110,10 +91,6 @@ class SyncMikrotikSlots extends Command
                     $queueName = trim((string) $queue['name']);
                     $queueMkId = trim((string) $queue['.id']);
 
-                    // Slot is available IF AND ONLY IF:
-                    // 1. Simple Queue name matches /^CLIENT-\d+$/i
-                    // 2. IP is NOT in Static ARP (dynamic === 'false')
-                    // 3. IP is NOT active in EXPIRED address list
                     $matchesClientPattern = preg_match('/^CLIENT-\d+$/i', $queueName) === 1;
                     $inStaticArp = isset($staticArpIps[$ip]);
                     $inActiveExpired = isset($activeExpiredIps[$ip]);
@@ -163,10 +140,6 @@ class SyncMikrotikSlots extends Command
         return $hasFailure ? self::FAILURE : self::SUCCESS;
     }
 
-    /**
-     * Extract a valid single IPv4 address from a RouterOS Simple Queue target string (e.g. "172.16.94.200/32").
-     * Returns null for multi-target strings or non-/32 subnets.
-     */
     private function extractSingleHostIp(string $rawTarget): ?string
     {
         $trimmed = trim($rawTarget);

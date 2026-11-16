@@ -17,9 +17,6 @@ use Illuminate\View\View;
 
 class PsbOrderController extends Controller
 {
-    /**
-     * Display the mobile-first technician PSB installation form.
-     */
     public function create(Request $request, TelegramService $telegramService): View
     {
         /** @var \App\Models\User $user */
@@ -56,10 +53,6 @@ class PsbOrderController extends Controller
         ]);
     }
 
-    /**
-     * Store a new PSB installation order, run MikroTik auto-provisioning with failure fallback,
-     * and broadcast the formatted installation report to Telegram.
-     */
     public function store(
         StorePsbOrderRequest $request,
         MikrotikProvisionerService $provisioner,
@@ -80,10 +73,19 @@ class PsbOrderController extends Controller
         );
         $tipeKoneksi = $odp->status_upgrade === 'upgrade' ? 'pppoe' : 'static_ip';
 
+        $storageDir = 'psb-photos/' . now()->format('Y-m');
+
+        $fotoMacOntPath = (string) $request->file('foto_mac_ont')->store($storageDir, 'public');
+        $fotoOdpPath = (string) $request->file('foto_odp')->store($storageDir, 'public');
+        $fotoKertasPath = (string) $request->file('foto_kertas_registrasi')->store($storageDir, 'public');
+        $fotoKtpPath = (string) $request->file('foto_ktp_pelanggan')->store($storageDir, 'public');
+        $fotoRumahPath = (string) $request->file('foto_rumah_pelanggan')->store($storageDir, 'public');
+
         $order = PsbOrder::create([
             'user_id' => $user->id,
             'nama_pelanggan' => trim((string) $validated['nama_pelanggan']),
             'alamat' => trim((string) $validated['alamat']),
+            'shareloc' => trim((string) $validated['shareloc']),
             'no_tlp' => trim((string) $validated['no_tlp']),
             'odp_id' => $odp->id,
             'port' => (int) $validated['port'],
@@ -93,15 +95,20 @@ class PsbOrderController extends Controller
             'jarak_kabel' => trim((string) $validated['jarak_kabel']),
             'signal_odp' => trim((string) $validated['signal_odp']),
             'signal_ont' => trim((string) $validated['signal_ont']),
-            'sales_id' => (int) $validated['sales_id'],
+            'sales_id' => ! empty($validated['sales_id']) ? (int) $validated['sales_id'] : null,
             'nama_teknisi' => $namaTeknisi,
+            'foto_mac_ont' => $fotoMacOntPath,
+            'foto_odp' => $fotoOdpPath,
+            'foto_kertas_registrasi' => $fotoKertasPath,
+            'foto_ktp_pelanggan' => $fotoKtpPath,
+            'foto_rumah_pelanggan' => $fotoRumahPath,
             'tipe_koneksi' => $tipeKoneksi,
             'hasil_poe_ip' => null,
             'status_sync' => 'pending',
             'error_log' => null,
         ]);
 
-        // Failure Fallback: Wrap MikroTik provisioning in try ... catch (\Throwable $e)
+        // Save order as failed if RouterOS is unreachable so NOC still receives the Telegram alert.
         try {
             $hasilPoeIp = $provisioner->provisionOrder($order);
 
@@ -120,7 +127,6 @@ class PsbOrderController extends Controller
 
         $order->load(['odp', 'paket', 'sales', 'user.telegramGroup']);
 
-        // Always send Telegram report to target group (even if provisioning failed)
         $telegramSent = $telegramService->sendPsbReport($order, $user);
 
         return redirect()
@@ -134,11 +140,12 @@ class PsbOrderController extends Controller
                     : TelegramService::FAILED_POE_IP_LABEL,
                 'raw_poe_ip' => $order->hasil_poe_ip,
                 'nama_pelanggan' => $order->nama_pelanggan,
+                'shareloc' => $order->shareloc,
                 'odp_nama' => $order->odp?->nama_odp,
                 'port' => $order->port,
                 'paket_nama' => $order->paket?->nama_paket,
                 'mac_address' => $order->mac_address,
-                'sales_kode' => $order->sales?->kode_sales_ip,
+                'sales_kode' => $order->sales?->kode_sales_ip ?? 'TANPA SALES',
                 'nama_teknisi' => $order->nama_teknisi,
                 'error_log' => $order->error_log,
                 'telegram_sent' => $telegramSent,

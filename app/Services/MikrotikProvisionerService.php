@@ -19,11 +19,6 @@ use RuntimeException;
 
 class MikrotikProvisionerService
 {
-    /**
-     * Normalize any raw MAC address input into uppercase AA:BB:CC:DD:EE:FF format.
-     *
-     * @throws InvalidArgumentException
-     */
     public static function normalizeMacAddress(string $rawMac): string
     {
         $hexOnly = strtoupper((string) preg_replace('/[^0-9A-Fa-f]/', '', $rawMac));
@@ -35,10 +30,6 @@ class MikrotikProvisionerService
         return implode(':', str_split($hexOnly, 2));
     }
 
-    /**
-     * Format technician display name with optional partner name.
-     * Example: "andri" or "andri&nopal"
-     */
     public static function formatTechnicianName(string $userName, ?string $rekanTeknisi = null): string
     {
         $primary = trim($userName);
@@ -51,17 +42,11 @@ class MikrotikProvisionerService
         return "{$primary}&{$partner}";
     }
 
-    /**
-     * Format standard MikroTik installation date comment (e.g., "PSB 22-2-2026").
-     */
     public static function formatDateComment(): string
     {
         return 'PSB ' . now()->format('j-n-Y');
     }
 
-    /**
-     * Create an authenticated RouterOS API Client instance for the given router.
-     */
     public function createClient(Router $router): ClientInterface
     {
         $timeout = (int) config('services.mikrotik.timeout', 10);
@@ -81,11 +66,6 @@ class MikrotikProvisionerService
         return new Client($config);
     }
 
-    /**
-     * Provision a PSB order onto MikroTik (PPPoE or Static IP based on ODP status_upgrade).
-     *
-     * @return string Generated PPPoE username or assigned Static IP address.
-     */
     public function provisionOrder(PsbOrder $order): string
     {
         $order->loadMissing(['odp', 'paket', 'sales.ipRouter']);
@@ -101,9 +81,6 @@ class MikrotikProvisionerService
         return $this->provisionStaticIp($order);
     }
 
-    /**
-     * BRANCH A: Provision PPPoE secret on the central PPPoE Server when ODP is 'upgrade'.
-     */
     protected function provisionPppoe(PsbOrder $order): string
     {
         $pppoeRouter = Router::where('is_pppoe_server', true)->first();
@@ -115,7 +92,7 @@ class MikrotikProvisionerService
         $client = $this->createClient($pppoeRouter);
 
         return DB::transaction(function () use ($order, $client): string {
-            /** @var Odp|null $lockedOdp */
+            // Lock the ODP row so concurrent submissions never generate duplicate PPPoE sequence numbers.
             $lockedOdp = Odp::where('id', $order->odp_id)
                 ->lockForUpdate()
                 ->first();
@@ -124,10 +101,8 @@ class MikrotikProvisionerService
                 throw new RuntimeException('ODP tidak ditemukan saat mengunci sequence PPPoE.');
             }
 
-            // 1. Query /ppp/secret/print on the PPPoE server
             $secrets = $this->queryAndRead($client, new Query('/ppp/secret/print'));
 
-            // 2. Filter secrets starting with "{kode_odp}_01_" and parse the 4th segment
             $prefix = "{$lockedOdp->kode_odp}_01_";
             $mikrotikMaxSeq = 0;
 
@@ -150,19 +125,16 @@ class MikrotikProvisionerService
                 }
             }
 
-            // 3. Compute next sequence and zero-pad to 5 digits
             $nextSeq = max($mikrotikMaxSeq, (int) $lockedOdp->last_seq) + 1;
             $paddedSeq = str_pad((string) $nextSeq, 5, '0', STR_PAD_LEFT);
 
-            // 4. Clean customer name for PPPoE username (alphanumeric + underscore, uppercase)
             $cleanCustomerName = $this->cleanCustomerNameForPppoe($order->nama_pelanggan);
-            $kodeSalesPppoe = $order->sales->kode_sales_pppoe;
+            $kodeSalesPppoe = $order->sales?->kode_sales_pppoe ?? '00';
 
             $pppoeUsername = "{$lockedOdp->kode_odp}_01_{$kodeSalesPppoe}_{$paddedSeq}_{$cleanCustomerName}";
             $defaultPassword = (string) config('services.mikrotik.pppoe_default_password', '123456');
             $comment = self::formatDateComment() . " | ODP:{$lockedOdp->nama_odp} P:{$order->port}";
 
-            // 5. Execute /ppp/secret/add on RouterOS
             $addQuery = (new Query('/ppp/secret/add'))
                 ->equal('name', $pppoeUsername)
                 ->equal('password', $defaultPassword)
@@ -172,7 +144,6 @@ class MikrotikProvisionerService
 
             $this->queryAndRead($client, $addQuery);
 
-            // 6. Update odps.last_seq
             $lockedOdp->update([
                 'last_seq' => $nextSeq,
             ]);
@@ -181,17 +152,21 @@ class MikrotikProvisionerService
         });
     }
 
-    /**
-     * BRANCH B: Provision Static IP (Simple Queue + Static ARP) on the per-sales distribution router
-     * when ODP is 'belum_upgrade'.
-     */
     protected function provisionStaticIp(PsbOrder $order): string
     {
         $sales = $order->sales;
         $router = $sales?->ipRouter;
 
         if ($router === null) {
-            throw new RuntimeException("Sales {$sales?->nama_sales} tidak memiliki router distribusi yang terhubung.");
+            $router = Router::where('is_pppoe_server', false)
+                ->whereHas('ipSlots', fn($q) => $q->where('status', 'available'))
+                ->orderBy('id')
+                ->first()
+                ?? Router::where('is_pppoe_server', false)->orderBy('id')->first();
+        }
+
+        if ($router === null) {
+            throw new RuntimeException('Tidak ada router distribusi Static IP yang tersedia.');
         }
 
         if (empty($router->lan_interface)) {
@@ -203,7 +178,6 @@ class MikrotikProvisionerService
 
         return DB::transaction(function () use ($order, $sales, $router, $formattedMac, $client): string {
             while (true) {
-                /** @var RouterIpSlot|null $slot */
                 $slot = RouterIpSlot::where('router_id', $router->id)
                     ->where('status', 'available')
                     ->orderBy('id', 'asc')
@@ -216,7 +190,6 @@ class MikrotikProvisionerService
 
                 $ip = $slot->ip_address;
 
-                // Live Check 1: Simple Queue Check (/queue/simple/print where target = "{$ip}/32")
                 $queueQuery = (new Query('/queue/simple/print'))
                     ->where('target', "{$ip}/32");
                 $queues = $this->queryAndRead($client, $queueQuery);
@@ -232,7 +205,6 @@ class MikrotikProvisionerService
                 $queueValid = $liveQueue !== null
                     && preg_match('/^CLIENT-\d+$/i', (string) $liveQueue['name']) === 1;
 
-                // Live Check 2: Static ARP Check (/ip/arp/print where address = $ip)
                 $arpQuery = (new Query('/ip/arp/print'))
                     ->where('address', $ip);
                 $arpEntries = $this->queryAndRead($client, $arpQuery);
@@ -253,7 +225,6 @@ class MikrotikProvisionerService
                     }
                 }
 
-                // Live Check 3: Isolation Check (/ip/firewall/address-list/print where list = 'EXPIRED' and address = $ip)
                 $expiredQuery = (new Query('/ip/firewall/address-list/print'))
                     ->where('list', 'EXPIRED')
                     ->where('address', $ip);
@@ -272,7 +243,7 @@ class MikrotikProvisionerService
                     }
                 }
 
-                // If ANY live check fails, mark this slot as 'used' and continue to the next available slot
+                // Skip slots that were manually assigned in Winbox or isolated since the last background sync.
                 if (! $queueValid || $hasStaticArp || $isIsolated) {
                     $slot->update([
                         'status' => 'used',
@@ -282,21 +253,17 @@ class MikrotikProvisionerService
                     continue;
                 }
 
-                // All 3 live checks passed! Proceed with RouterOS provisioning:
-                // 1. Extract 3rd and 4th octets of $ip (e.g., 172.16.103.191 -> 103191)
                 $octets = explode('.', $ip);
                 if (count($octets) !== 4) {
                     throw new RuntimeException("Format IP address tidak valid pada slot: {$ip}");
                 }
                 $octet34 = $octets[2] . $octets[3];
 
-                // 2. Clean customer name: remove special chars, uppercase, preserve single spaces
                 $cleanName = $this->cleanCustomerNameForQueue($order->nama_pelanggan);
 
-                // 3. Build Queue Name: "{kode_sales_ip}-{octet34}-{cleanName}"
-                $queueName = strtoupper($sales->kode_sales_ip) . "-{$octet34}-{$cleanName}";
+                $salesPrefix = strtoupper($sales?->kode_sales_ip ?? 'NON');
+                $queueName = "{$salesPrefix}-{$octet34}-{$cleanName}";
 
-                // 4. Update Simple Queue (/queue/simple/set)
                 $queueId = (string) $liveQueue['.id'];
                 $setQueueQuery = (new Query('/queue/simple/set'))
                     ->equal('.id', $queueId)
@@ -307,14 +274,13 @@ class MikrotikProvisionerService
 
                 $this->queryAndRead($client, $setQueueQuery);
 
-                // 5. Clean Dynamic ARP so static ARP creation never fails with "already have such entry"
+                // Remove dynamic ARP entries first so RouterOS does not reject the static ARP as a duplicate.
                 foreach ($dynamicArpIds as $dynamicArpId) {
                     $removeArpQuery = (new Query('/ip/arp/remove'))
                         ->equal('.id', $dynamicArpId);
                     $this->queryAndRead($client, $removeArpQuery);
                 }
 
-                // 6. Add Static ARP (/ip/arp/add)
                 $addArpQuery = (new Query('/ip/arp/add'))
                     ->equal('address', $ip)
                     ->equal('mac-address', $formattedMac)
@@ -323,7 +289,6 @@ class MikrotikProvisionerService
 
                 $this->queryAndRead($client, $addArpQuery);
 
-                // 7. Mark router_ip_slots row as used
                 $slot->update([
                     'queue_mk_id' => $queueId,
                     'queue_name' => $queueName,
@@ -331,15 +296,12 @@ class MikrotikProvisionerService
                     'psb_order_id' => $order->id,
                 ]);
 
-                // 8. Return assigned IP
                 return $ip;
             }
         });
     }
 
     /**
-     * Send a RouterOS query, read the parsed response, and throw RuntimeException if RouterOS returned a !trap error.
-     *
      * @return array<int|string, mixed>
      */
     public function queryAndRead(ClientInterface $client, QueryInterface $query): array
@@ -357,10 +319,6 @@ class MikrotikProvisionerService
         return $response;
     }
 
-    /**
-     * Clean customer name for PPPoE secret:
-     * Remove non-alphanumeric chars except spaces, replace spaces with '_', uppercase.
-     */
     public function cleanCustomerNameForPppoe(string $rawName): string
     {
         $alnumSpaces = (string) preg_replace('/[^A-Za-z0-9 ]/', '', $rawName);
@@ -369,10 +327,6 @@ class MikrotikProvisionerService
         return $normalized !== '' ? strtoupper($normalized) : 'PELANGGAN';
     }
 
-    /**
-     * Clean customer name for Simple Queue:
-     * Remove special chars, uppercase, preserve single spaces.
-     */
     public function cleanCustomerNameForQueue(string $rawName): string
     {
         $alnumSpaces = (string) preg_replace('/[^A-Za-z0-9 ]/', '', $rawName);

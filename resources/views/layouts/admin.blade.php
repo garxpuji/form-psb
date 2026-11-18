@@ -161,6 +161,19 @@
             </div>
 
             <main id="admin-main-content" class="w-full flex-1 px-3.5 py-4 sm:px-6 sm:py-5 lg:px-8">
+                @if ($connectionTest = session('connection_test'))
+                <div
+                    @class([
+                        'mb-4 break-words rounded-xl border-2 p-3.5 text-sm',
+                        'border-[#059669] bg-[#D1FAE5] text-[#065F46]' => $connectionTest['successful'],
+                        'border-[#DC2626] bg-[#FEE2E2] text-[#991B1B]' => ! $connectionTest['successful'],
+                    ])
+                    role="{{ $connectionTest['successful'] ? 'status' : 'alert' }}">
+                    <div class="font-bold">{{ $connectionTest['successful'] ? 'Koneksi Berhasil' : 'Tes Koneksi Gagal' }}</div>
+                    <div class="mt-0.5">{{ $connectionTest['message'] }}</div>
+                </div>
+                @endif
+
                 @if (session('success'))
                 <div class="mb-4 rounded-xl border-2 border-[#059669] bg-[#D1FAE5] p-3.5 text-sm text-[#065F46]" role="status">
                     <div class="font-bold">Perubahan Tersimpan</div>

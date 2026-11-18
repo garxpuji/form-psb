@@ -417,6 +417,8 @@ class PsbProvisioningTest extends TestCase
                 $endpoint = $query->getEndpoint();
 
                 if ($endpoint === '/queue/simple/print') {
+                    $this->assertSame(['=.proplist=.id,name,target'], $query->getAttributes());
+
                     return [
                         ['.id' => '*10', 'name' => 'CLIENT-94200', 'target' => '172.16.94.200/32'],
                         ['.id' => '*11', 'name' => 'CLIENT-94201', 'target' => '172.16.94.201/32'],
@@ -426,6 +428,8 @@ class PsbProvisioningTest extends TestCase
                 }
 
                 if ($endpoint === '/ip/arp/print') {
+                    $this->assertSame(['=.proplist=address,dynamic'], $query->getAttributes());
+
                     return [
                         ['address' => '172.16.94.200', 'dynamic' => 'true'],
                         ['address' => '172.16.94.201', 'dynamic' => 'false'],
@@ -433,8 +437,10 @@ class PsbProvisioningTest extends TestCase
                 }
 
                 if ($endpoint === '/ip/firewall/address-list/print') {
+                    $this->assertSame(['=.proplist=address,disabled', '?list=EXPIRED'], $query->getAttributes());
+
                     return [
-                        ['address' => '172.16.94.202', 'list' => 'EXPIRED', 'disabled' => 'false'],
+                        ['address' => '172.16.94.202', 'disabled' => 'false'],
                     ];
                 }
 

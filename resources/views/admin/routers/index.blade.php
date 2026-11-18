@@ -169,7 +169,11 @@
                                     @endif
                                 </td>
                                 <td class="whitespace-nowrap px-4 py-3 text-right text-xs">
-                                    <div class="inline-flex items-center gap-2">
+                                    <div class="flex flex-wrap items-center justify-end gap-2">
+                                        <x-noc.connection-test
+                                            :action="route('admin.routers.test-connection', $router)"
+                                            label="Tes Koneksi"
+                                            :target="$router->nama_router" />
                                         <button
                                             type="button"
                                             @click="editingRouter = @js([

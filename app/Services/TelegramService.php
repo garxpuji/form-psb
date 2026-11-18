@@ -7,14 +7,50 @@ namespace App\Services;
 use App\Models\PsbOrder;
 use App\Models\TelegramGroup;
 use App\Models\User;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use InvalidArgumentException;
 use RuntimeException;
 
 class TelegramService
 {
     public const FAILED_POE_IP_LABEL = '⚠️ GAGAL AUTO-CONFIG (CEK NOC)';
+
+    /**
+     * @return array{successful: bool, message: string}
+     */
+    public function testConnection(): array
+    {
+        $botToken = trim((string) config('services.telegram.bot_token', ''));
+
+        if ($botToken === '') {
+            return ['successful' => false, 'message' => 'TELEGRAM_BOT_TOKEN belum diatur.'];
+        }
+
+        try {
+            $response = Http::timeout((int) config('services.telegram.timeout', 15))
+                ->withoutRedirecting()
+                ->get("https://api.telegram.org/bot{$botToken}/getMe");
+        } catch (ConnectionException) {
+            return ['successful' => false, 'message' => 'API Telegram tidak dapat dijangkau. Periksa koneksi internet server.'];
+        } catch (InvalidArgumentException) {
+            return ['successful' => false, 'message' => 'Format TELEGRAM_BOT_TOKEN tidak valid.'];
+        }
+
+        if (in_array($response->status(), [401, 404], true)) {
+            return ['successful' => false, 'message' => 'Telegram menolak token bot. Periksa TELEGRAM_BOT_TOKEN.'];
+        }
+
+        $username = $response->json('result.username');
+
+        if (! $response->successful() || $response->json('ok') !== true || ! is_string($username) || $username === '') {
+            return ['successful' => false, 'message' => 'API Telegram gagal memberikan identitas bot. Coba lagi.'];
+        }
+
+        return ['successful' => true, 'message' => "API Telegram terhubung sebagai @{$username}."];
+    }
 
     public function resolveTargetGroup(User $user): TelegramGroup
     {

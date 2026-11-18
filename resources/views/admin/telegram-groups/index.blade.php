@@ -1,33 +1,12 @@
 @extends('layouts.admin', ['title' => 'Master Grup Telegram'])
 
 @section('content')
-@php
-    $hasWebhookSecret = trim((string) config('services.telegram.webhook_secret', '')) !== '';
-@endphp
 <div class="space-y-4 sm:space-y-5" x-data="{ editingGroup: null }">
     <div class="rounded-2xl border-[1.5px] border-[#4A7396] bg-white p-4 shadow-sm sm:p-5">
-        <div class="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
-            <div>
-                <h1 class="text-[clamp(1.125rem,2vw,1.35rem)] font-extrabold text-[#06233B]">Master Grup Telegram PSB</h1>
-                <p class="mt-0.5 text-xs font-medium text-[#2C5270]">
-                    Atur 1 grup utama <code class="rounded bg-[#FEF3C7] px-1.5 py-0.5 font-mono font-bold text-[#78350F]">ALL TEAM PSB</code> dan grup khusus tiap tim teknisi (<code class="rounded bg-[#D1FAE5] px-1.5 py-0.5 font-mono font-bold text-[#065F46]">TEAM 1 s/d TEAM 4</code>).
-                </p>
-            </div>
-
-            <div class="rounded-xl border border-[#0284C7] bg-[#E0F2FE] px-4 py-2.5 text-xs text-[#075985]">
-                <div class="flex flex-wrap items-center justify-between gap-2 font-bold">
-                    <span>Endpoint Webhook `/cekid`:</span>
-                    @if ($hasWebhookSecret)
-                        <span class="rounded border border-[#059669] bg-[#D1FAE5] px-2 py-0.5 font-mono text-[11px] text-[#065F46]">SECRET TOKEN AKTIF</span>
-                    @else
-                        <span class="rounded border border-[#D97706] bg-[#FEF3C7] px-2 py-0.5 font-mono text-[11px] text-[#78350F]">SET TELEGRAM_WEBHOOK_SECRET DI .ENV</span>
-                    @endif
-                </div>
-                <div class="mt-1">
-                    Daftarkan <code class="font-mono font-bold">{{ url('/api/telegram/webhook') }}</code> beserta parameter <code class="font-mono font-bold">secret_token</code> lalu kirim <code class="font-mono font-bold">/cekid</code> di grup.
-                </div>
-            </div>
-        </div>
+        <h1 class="text-[clamp(1.125rem,2vw,1.35rem)] font-extrabold text-[#06233B]">Master Grup Telegram PSB</h1>
+        <p class="mt-0.5 text-xs font-medium text-[#2C5270]">
+            Atur 1 grup utama <code class="rounded bg-[#FEF3C7] px-1.5 py-0.5 font-mono font-bold text-[#78350F]">ALL TEAM PSB</code> dan grup khusus tiap tim teknisi (<code class="rounded bg-[#D1FAE5] px-1.5 py-0.5 font-mono font-bold text-[#065F46]">TEAM 1 s/d TEAM 4</code>).
+        </p>
     </div>
 
     <div class="grid grid-cols-1 gap-4 sm:gap-5 xl:grid-cols-12 xl:items-start">
@@ -119,13 +98,16 @@
                             </td>
                             <td class="px-4 py-3 font-mono text-xs font-bold text-[#06233B]">{{ $group->users_count }} akun</td>
                             <td class="whitespace-nowrap px-4 py-3 text-right text-xs">
-                                <div class="inline-flex items-center gap-2">
+                                <div class="flex flex-wrap items-center justify-end gap-2">
                                     <button
                                         type="button"
                                         @click="editingGroup = @js($group)"
                                         class="inline-flex min-h-[44px] items-center rounded-lg border-[1.5px] border-[#4A7396] bg-[#EDF5FC] px-3 py-2 font-bold text-[#06233B] hover:bg-[#E0F2FE]">
                                         Edit
                                     </button>
+                                    <x-noc.connection-test
+                                        :action="route('admin.telegram-groups.test-connection')"
+                                        label="Tes Koneksi Bot" />
                                     @if (! $group->is_all_team)
                                     <form
                                         method="POST"

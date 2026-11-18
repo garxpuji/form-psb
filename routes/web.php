@@ -55,6 +55,13 @@ Route::middleware(['auth', 'active'])->group(function (): void {
 
             Route::get('/slots', [SlotMonitorController::class, 'index'])->name('slots.index');
 
+            Route::middleware('throttle:12,1,connection-tests')->group(function (): void {
+                Route::post('/routers/{router}/test-connection', [RouterController::class, 'testConnection'])
+                    ->name('routers.test-connection');
+                Route::post('/telegram-groups/test-connection', [TelegramGroupController::class, 'testConnection'])
+                    ->name('telegram-groups.test-connection');
+            });
+
             Route::resource('routers', RouterController::class)->only(['index', 'store', 'update', 'destroy']);
             Route::resource('sales', SaleController::class)->only(['index', 'store', 'update', 'destroy']);
 

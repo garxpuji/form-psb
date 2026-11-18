@@ -43,9 +43,12 @@ class SyncMikrotikSlots extends Command
                 $client = $provisioner->createClient($router);
 
                 // Fetch queues, ARP table, and EXPIRED list in 3 bulk calls to avoid per-IP query overhead.
-                $queues = $provisioner->queryAndRead($client, new Query('/queue/simple/print'));
-                $arpEntries = $provisioner->queryAndRead($client, new Query('/ip/arp/print'));
+                $queueQuery = (new Query('/queue/simple/print'))->equal('.proplist', '.id,name,target');
+                $queues = $provisioner->queryAndRead($client, $queueQuery);
+                $arpQuery = (new Query('/ip/arp/print'))->equal('.proplist', 'address,dynamic');
+                $arpEntries = $provisioner->queryAndRead($client, $arpQuery);
                 $expiredQuery = (new Query('/ip/firewall/address-list/print'))
+                    ->equal('.proplist', 'address,disabled')
                     ->where('list', 'EXPIRED');
                 $expiredEntries = $provisioner->queryAndRead($client, $expiredQuery);
 

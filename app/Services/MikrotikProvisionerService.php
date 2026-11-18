@@ -66,7 +66,25 @@ class MikrotikProvisionerService
             'delay' => 1,
         ]);
 
+        if (PHP_OS_FAMILY === 'Windows' && PHP_MAJOR_VERSION === 8 && PHP_MINOR_VERSION === 4) {
+            // A partial stream read can report a spurious timeout on PHP 8.4. The client still enforces socket_timeout.
+            $config->set('throw_timeout_exception', false);
+        }
+
         return new Client($config);
+    }
+
+    public function testConnection(Router $router): string
+    {
+        $client = $this->createClient($router);
+        $query = (new Query('/system/resource/print'))->equal('.proplist', 'version');
+        $version = $this->queryAndRead($client, $query)[0]['version'] ?? null;
+
+        if (! is_string($version) || trim($version) === '') {
+            throw new RuntimeException('RouterOS API tidak mengembalikan versi router.');
+        }
+
+        return $version;
     }
 
     public function provisionOrder(PsbOrder $order): string

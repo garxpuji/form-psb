@@ -7,9 +7,12 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\RouterRequest;
 use App\Models\Router;
+use App\Services\MikrotikProvisionerService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
+use RouterOS\Exceptions\BadCredentialsException;
+use Throwable;
 
 class RouterController extends Controller
 {
@@ -31,6 +34,29 @@ class RouterController extends Controller
         return view('admin.routers.index', [
             'routers' => $routers,
         ]);
+    }
+
+    public function testConnection(Router $router, MikrotikProvisionerService $provisioner): RedirectResponse
+    {
+        try {
+            $version = $provisioner->testConnection($router);
+            $result = [
+                'successful' => true,
+                'message' => "API MikroTik {$router->nama_router} terhubung (RouterOS {$version}).",
+            ];
+        } catch (BadCredentialsException) {
+            $result = [
+                'successful' => false,
+                'message' => "Router {$router->nama_router} menolak login API. Periksa username dan password router.",
+            ];
+        } catch (Throwable) {
+            $result = [
+                'successful' => false,
+                'message' => "API MikroTik {$router->nama_router} gagal merespons. Periksa host, port, dan izin baca akun API.",
+            ];
+        }
+
+        return redirect()->route('admin.routers.index')->with('connection_test', $result);
     }
 
     /**

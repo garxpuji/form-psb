@@ -1,20 +1,20 @@
 @extends('layouts.admin', ['title' => 'Log PSB & Kirim Ulang Konfigurasi'])
 
 @section('content')
-<div class="space-y-4 sm:space-y-5" x-data="{ activePhotoModal: null }">
-    <div class="rounded-2xl border-[1.5px] border-[#5B82A6] bg-white p-4 shadow-sm sm:p-5">
+<div class="space-y-4 sm:space-y-5" x-data="{ activePhotoModal: null, activePhotoIndex: 0, photoRotation: 0 }">
+    <div class="rounded-2xl border-[1.5px] border-[#4A7396] bg-white p-4 shadow-sm sm:p-5">
         <div class="flex flex-col justify-between gap-4 xl:flex-row xl:items-center">
             <div>
                 <h1 class="text-[clamp(1.125rem,2vw,1.35rem)] font-extrabold text-[#06233B]">Log Pemasangan Baru (PSB) & Kirim Ulang NOC</h1>
                 <p class="mt-0.5 text-xs font-medium text-[#2C5270]">
-                    Periksa antrean yang gagal terhubung ke MikroTik, cek kelengkapan 5 foto dokumentasi dan titik Shareloc, lalu jalankan kirim ulang konfigurasi.
+                    Periksa antrean yang gagal terhubung ke MikroTik, verifikasi 5 foto dokumentasi privat secara berdampingan, lalu jalankan kirim ulang konfigurasi.
                 </p>
             </div>
 
             <div class="flex flex-wrap items-center gap-2">
                 <a
                     href="{{ route('admin.dashboard') }}"
-                    class="inline-flex min-h-[44px] items-center gap-2 rounded-xl border-[1.5px] border-[#5B82A6] bg-[#EDF5FC] px-3.5 py-2 text-xs font-bold text-[#06233B] hover:bg-[#E0F2FE] active:bg-[#D0E6F8]">
+                    class="inline-flex min-h-[44px] items-center gap-2 rounded-xl border-[1.5px] border-[#4A7396] bg-[#EDF5FC] px-3.5 py-2 text-xs font-bold text-[#06233B] hover:bg-[#E0F2FE] active:bg-[#D0E6F8]">
                     <span>Total Order:</span>
                     <span class="font-mono text-sm font-extrabold">{{ $stats['total'] }}</span>
                 </a>
@@ -47,7 +47,7 @@
                     <button
                         type="submit"
                         class="inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-[#005F99] px-4 py-2 text-xs font-bold text-white transition hover:bg-[#054A78] active:bg-[#043A5E]">
-                        <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                         </svg>
                         <span>Sync Slot Sekarang</span>
@@ -59,9 +59,9 @@
 
     <div class="grid grid-cols-1 gap-4 sm:gap-5 xl:grid-cols-12 xl:items-start">
         <div class="space-y-4 xl:col-span-9">
-            <form method="GET" action="{{ route('admin.dashboard') }}" class="rounded-2xl border-[1.5px] border-[#5B82A6] bg-white p-3.5 shadow-sm sm:p-4">
-                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-12">
-                    <div class="lg:col-span-4">
+            <form method="GET" action="{{ route('admin.dashboard') }}" class="rounded-2xl border-[1.5px] border-[#4A7396] bg-white p-3.5 shadow-sm sm:p-4">
+                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 2xl:grid-cols-12">
+                    <div class="sm:col-span-2 2xl:col-span-4">
                         <label for="q" class="block text-xs font-bold uppercase text-[#06233B]">Cari Pelanggan / POE / IP / MAC / Teknisi</label>
                         <input
                             id="q"
@@ -69,42 +69,42 @@
                             type="text"
                             value="{{ $filters['q'] }}"
                             placeholder="Ketik nama, IP, PPPoE, atau MAC..."
-                            class="mt-1 block min-h-[44px] w-full rounded-lg border-[1.5px] border-[#5B82A6] bg-white px-3 py-2 text-sm font-medium text-[#06233B] placeholder-[#2C5270]/70">
+                            class="mt-1 block min-h-[44px] w-full rounded-lg border-[1.5px] border-[#4A7396] bg-white px-3 py-2 text-sm font-semibold text-[#06233B]">
                     </div>
 
-                    <div class="lg:col-span-2">
+                    <div class="2xl:col-span-2">
                         <label for="status_sync" class="block text-xs font-bold uppercase text-[#06233B]">Status Sync</label>
                         <select
                             id="status_sync"
                             name="status_sync"
-                            class="mt-1 block min-h-[44px] w-full rounded-lg border-[1.5px] border-[#5B82A6] bg-white px-3 py-2 text-sm font-medium text-[#06233B]">
+                            class="mt-1 block min-h-[44px] w-full rounded-lg border-[1.5px] border-[#4A7396] bg-white px-3 py-2 text-sm font-semibold text-[#06233B]">
                             <option value="">Semua Status</option>
-                            <option value="failed" @selected($filters['status_sync']==='failed' )>Failed (Gagal)</option>
-                            <option value="success" @selected($filters['status_sync']==='success' )>Success</option>
-                            <option value="pending" @selected($filters['status_sync']==='pending' )>Pending</option>
+                            <option value="failed" @selected($filters['status_sync']==='failed')>Failed (Gagal)</option>
+                            <option value="success" @selected($filters['status_sync']==='success')>Success</option>
+                            <option value="pending" @selected($filters['status_sync']==='pending')>Pending</option>
                         </select>
                     </div>
 
-                    <div class="lg:col-span-2">
+                    <div class="2xl:col-span-2">
                         <label for="tipe_koneksi" class="block text-xs font-bold uppercase text-[#06233B]">Tipe Koneksi</label>
                         <select
                             id="tipe_koneksi"
                             name="tipe_koneksi"
-                            class="mt-1 block min-h-[44px] w-full rounded-lg border-[1.5px] border-[#5B82A6] bg-white px-3 py-2 text-sm font-medium text-[#06233B]">
+                            class="mt-1 block min-h-[44px] w-full rounded-lg border-[1.5px] border-[#4A7396] bg-white px-3 py-2 text-sm font-semibold text-[#06233B]">
                             <option value="">Semua Tipe</option>
-                            <option value="pppoe" @selected($filters['tipe_koneksi']==='pppoe' )>PPPoE [Upgrade]</option>
-                            <option value="static_ip" @selected($filters['tipe_koneksi']==='static_ip' )>Static IP [Belum]</option>
+                            <option value="pppoe" @selected($filters['tipe_koneksi']==='pppoe')>PPPoE [Upgrade]</option>
+                            <option value="static_ip" @selected($filters['tipe_koneksi']==='static_ip')>Static IP [Belum]</option>
                         </select>
                     </div>
 
-                    <div class="lg:col-span-2">
+                    <div class="2xl:col-span-2">
                         <label for="sales_id" class="block text-xs font-bold uppercase text-[#06233B]">Sales</label>
                         <select
                             id="sales_id"
                             name="sales_id"
-                            class="mt-1 block min-h-[44px] w-full rounded-lg border-[1.5px] border-[#5B82A6] bg-white px-3 py-2 text-sm font-medium text-[#06233B]">
+                            class="mt-1 block min-h-[44px] w-full rounded-lg border-[1.5px] border-[#4A7396] bg-white px-3 py-2 text-sm font-semibold text-[#06233B]">
                             <option value="">Semua Sales</option>
-                            <option value="tanpa_sales" @selected($filters['sales_id']==='tanpa_sales' )>Tanpa Sales</option>
+                            <option value="tanpa_sales" @selected($filters['sales_id']==='tanpa_sales')>Tanpa Sales</option>
                             @foreach ($salesList as $s)
                             <option value="{{ $s->id }}" @selected($filters['sales_id']===(string) $s->id)>
                                 {{ $s->kode_sales_ip }}
@@ -113,42 +113,37 @@
                         </select>
                     </div>
 
-                    <div class="flex items-end gap-2 lg:col-span-2">
+                    <div class="flex items-end gap-2 2xl:col-span-2">
                         <button
                             type="submit"
-                            class="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-lg bg-[#005F99] px-3.5 py-2 text-xs font-bold text-white hover:bg-[#054A78] active:bg-[#043A5E]">
+                            class="inline-flex min-h-[44px] flex-1 shrink-0 items-center justify-center whitespace-nowrap rounded-lg bg-[#005F99] px-3.5 py-2 text-xs font-bold text-white hover:bg-[#054A78] active:bg-[#043A5E]">
                             Saring Data
                         </button>
                         <a
                             href="{{ route('admin.dashboard') }}"
-                            class="inline-flex min-h-[44px] items-center justify-center rounded-lg border-[1.5px] border-[#5B82A6] bg-[#EDF5FC] px-3 py-2 text-xs font-bold text-[#06233B] hover:bg-[#E0F2FE] active:bg-[#D0E6F8]">
+                            class="inline-flex min-h-[44px] shrink-0 items-center justify-center whitespace-nowrap rounded-lg border-[1.5px] border-[#4A7396] bg-[#EDF5FC] px-3 py-2 text-xs font-bold text-[#06233B] hover:bg-[#E0F2FE] active:bg-[#D0E6F8]">
                             Reset
                         </a>
                     </div>
                 </div>
             </form>
 
-            <div class="overflow-hidden rounded-2xl border-[1.5px] border-[#5B82A6] bg-white shadow-sm">
+            <div class="overflow-hidden rounded-2xl border-[1.5px] border-[#4A7396] bg-white shadow-sm">
                 <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-[#B8D4EC] text-left text-sm">
+                    <table class="min-w-full divide-y divide-[#7FA6C9] text-left text-sm">
                         <thead class="bg-[#072A47] text-xs font-bold uppercase tracking-wider text-white">
                             <tr>
-                                <th class="px-4 py-3.5">Status & Tindakan</th>
-                                <th class="px-4 py-3.5">Hasil POE / IP & Pesan Error</th>
-                                <th class="px-4 py-3.5">Pelanggan & Shareloc</th>
-                                <th class="px-4 py-3.5">ODP & Paket</th>
-                                <th class="px-4 py-3.5">MAC, Optik & 5 Foto</th>
-                                <th class="px-4 py-3.5">Sales & Teknisi</th>
-                                <th class="px-4 py-3.5">Waktu Input</th>
+                                <th scope="col" class="px-4 py-3.5">Status & Tindakan</th>
+                                <th scope="col" class="px-4 py-3.5">Hasil POE / IP & Pesan Error</th>
+                                <th scope="col" class="px-4 py-3.5">Pelanggan & Shareloc</th>
+                                <th scope="col" class="px-4 py-3.5">ODP & Paket</th>
+                                <th scope="col" class="px-4 py-3.5">MAC, Optik & 5 Foto</th>
+                                <th scope="col" class="px-4 py-3.5">Sales & Teknisi</th>
+                                <th scope="col" class="px-4 py-3.5">Waktu Input</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-[#B8D4EC] bg-white">
+                        <tbody class="divide-y divide-[#7FA6C9] bg-white">
                             @forelse ($orders as $order)
-                            @php
-                            $sharelocHref = str_starts_with((string) $order->shareloc, 'http')
-                            ? $order->shareloc
-                            : 'https://www.google.com/maps/search/?api=1&query=' . urlencode((string) $order->shareloc);
-                            @endphp
                             <tr class="align-top transition hover:bg-[#EDF5FC]/70">
                                 <td class="px-4 py-3.5">
                                     @if ($order->status_sync === 'success')
@@ -180,11 +175,11 @@
                                 <td class="px-4 py-3.5">
                                     <div class="mb-1">
                                         @if ($order->tipe_koneksi === 'pppoe')
-                                        <span class="rounded border border-[#0284C7] bg-[#E0F2FE] px-1.5 py-0.5 font-mono text-[11px] font-bold text-[#075985]">
+                                        <span class="rounded border border-[#0284C7] bg-[#E0F2FE] px-1.5 py-0.5 font-mono text-xs font-bold text-[#075985]">
                                             [PPPoE]
                                         </span>
                                         @else
-                                        <span class="rounded border border-[#D97706] bg-[#FEF3C7] px-1.5 py-0.5 font-mono text-[11px] font-bold text-[#78350F]">
+                                        <span class="rounded border border-[#D97706] bg-[#FEF3C7] px-1.5 py-0.5 font-mono text-xs font-bold text-[#78350F]">
                                             [Static IP]
                                         </span>
                                         @endif
@@ -197,7 +192,7 @@
                                     @endif
 
                                     @if ($order->error_log)
-                                    <div class="mt-1.5 max-w-xs rounded-lg border border-[#DC2626] bg-[#FEE2E2] p-2 font-mono text-[11px] text-[#991B1B]">
+                                    <div class="mt-1.5 max-w-xs rounded-lg border border-[#DC2626] bg-[#FEE2E2] p-2 font-mono text-xs text-[#991B1B]">
                                         {{ $order->error_log }}
                                     </div>
                                     @endif
@@ -205,12 +200,12 @@
 
                                 <td class="px-4 py-3.5">
                                     <div class="font-extrabold text-[#06233B]">{{ $order->nama_pelanggan }}</div>
-                                    <div class="font-mono text-xs text-[#2C5270]">{{ $order->no_tlp }}</div>
+                                    <div class="font-mono text-xs font-semibold text-[#2C5270]">{{ $order->no_tlp }}</div>
                                     <div class="mt-1 max-w-xs text-xs text-[#2C5270]">{{ $order->alamat }}</div>
                                     @if (! empty($order->shareloc))
                                     <div class="mt-2">
                                         <a
-                                            href="{{ $sharelocHref }}"
+                                            href="{{ $order->safeSharelocUrl() }}"
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             class="inline-flex min-h-[44px] items-center gap-1.5 rounded-lg border border-[#0284C7] bg-[#E0F2FE] px-3 py-2 text-xs font-bold text-[#075985] hover:bg-[#005F99] hover:text-white active:bg-[#043A5E]">
@@ -239,18 +234,8 @@
                                     <div class="mt-2">
                                         <button
                                             type="button"
-                                            @click="activePhotoModal = @js([
-                                                    'nama_pelanggan' => $order->nama_pelanggan,
-                                                    'odp' => ($order->odp?->nama_odp ?? '-') . ' / Port ' . $order->port,
-                                                    'photos' => [
-                                                        ['label' => '1. Foto MAC ONT', 'url' => Storage::url($order->foto_mac_ont)],
-                                                        ['label' => '2. Foto ODP', 'url' => Storage::url($order->foto_odp)],
-                                                        ['label' => '3. Foto Kertas Registrasi', 'url' => Storage::url($order->foto_kertas_registrasi)],
-                                                        ['label' => '4. Foto KTP Pelanggan', 'url' => Storage::url($order->foto_ktp_pelanggan)],
-                                                        ['label' => '5. Foto Rumah Pelanggan', 'url' => Storage::url($order->foto_rumah_pelanggan)],
-                                                    ],
-                                                ])"
-                                            class="inline-flex min-h-[44px] items-center rounded-lg border-[1.5px] border-[#5B82A6] bg-[#EDF5FC] px-3 py-2 text-xs font-bold text-[#06233B] hover:bg-[#005F99] hover:text-white active:bg-[#043A5E]">
+                                            @click="activePhotoIndex = 0; photoRotation = 0; activePhotoModal = @js($order->adminPhotoModalPayload())"
+                                            class="inline-flex min-h-[44px] items-center rounded-lg border-[1.5px] border-[#4A7396] bg-[#EDF5FC] px-3 py-2 text-xs font-bold text-[#06233B] hover:bg-[#005F99] hover:text-white active:bg-[#043A5E]">
                                             Lihat 5 Foto PSB
                                         </button>
                                     </div>
@@ -290,56 +275,80 @@
                 </div>
 
                 @if ($orders->hasPages())
-                <div class="border-t border-[#B8D4EC] bg-[#EDF5FC] px-4 py-3">
+                <div class="border-t border-[#7FA6C9] bg-[#EDF5FC] px-4 py-3">
                     {{ $orders->links() }}
                 </div>
                 @endif
             </div>
         </div>
 
-        <aside class="rounded-2xl border-[1.5px] border-[#5B82A6] bg-white p-4 shadow-sm xl:col-span-3">
-            <div class="flex items-center justify-between border-b border-[#B8D4EC] pb-3">
+        <aside class="rounded-2xl border-[1.5px] border-[#4A7396] bg-white p-4 shadow-sm xl:col-span-3">
+            <div class="flex items-center justify-between border-b border-[#7FA6C9] pb-3">
                 <h2 class="text-sm font-extrabold text-[#06233B]">Slot IP Router Distribusi</h2>
                 <a
                     href="{{ route('admin.slots.index') }}"
-                    class="inline-flex min-h-[44px] items-center rounded-lg border border-[#5B82A6] bg-[#EDF5FC] px-3 py-2 text-xs font-bold text-[#005F99] hover:bg-[#E0F2FE]">
+                    class="inline-flex min-h-[44px] items-center rounded-lg border border-[#4A7396] bg-[#EDF5FC] px-3 py-2 text-xs font-bold text-[#005F99] hover:bg-[#E0F2FE]">
                     Semua Slot
                 </a>
             </div>
 
             <div class="mt-3.5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-1">
                 @forelse ($distributionRouters as $router)
-                <div class="rounded-xl border border-[#B8D4EC] bg-[#EDF5FC] p-3.5">
+                @php
+                    $avail = (int) $router->available_slots_count;
+                    $used = (int) $router->used_slots_count;
+                    $totalSlots = max(1, $avail + $used);
+                    $usedPercent = min(100, (int) round(($used / $totalSlots) * 100));
+
+                    if ($avail === 0) {
+                        $badgeClasses = 'border-[#DC2626] bg-[#FEE2E2] text-[#991B1B]';
+                        $barColor = 'bg-[#DC2626]';
+                        $statusPrefix = 'HABIS · ';
+                    } elseif ($avail <= 5) {
+                        $badgeClasses = 'border-[#D97706] bg-[#FEF3C7] text-[#78350F]';
+                        $barColor = 'bg-[#D97706]';
+                        $statusPrefix = 'MENIPIS · ';
+                    } else {
+                        $badgeClasses = 'border-[#059669] bg-[#D1FAE5] text-[#065F46]';
+                        $barColor = 'bg-[#059669]';
+                        $statusPrefix = '';
+                    }
+                @endphp
+                <div class="rounded-xl border border-[#4A7396] bg-[#EDF5FC] p-3.5">
                     <div class="flex items-start justify-between gap-2">
                         <div>
                             <div class="text-xs font-extrabold text-[#06233B]">{{ $router->nama_router }}</div>
-                            <div class="font-mono text-[11px] text-[#2C5270]">
+                            <div class="font-mono text-xs text-[#2C5270]">
                                 {{ $router->ip_host }}
                                 @if ($router->sales->isNotEmpty())
                                 &middot; Sales: {{ $router->sales->pluck('kode_sales_ip')->join(', ') }}
                                 @endif
                             </div>
                         </div>
-                        <span class="inline-flex shrink-0 items-center rounded border border-[#059669] bg-[#D1FAE5] px-2 py-0.5 font-mono text-xs font-bold text-[#065F46]">
-                            {{ $router->available_slots_count }} Kosong
+                        <span class="inline-flex shrink-0 items-center rounded border px-2 py-0.5 font-mono text-xs font-bold {{ $badgeClasses }}">
+                            {{ $statusPrefix }}{{ $avail }} Kosong
                         </span>
                     </div>
 
-                    <div class="mt-2.5 flex items-center justify-between border-t border-[#B8D4EC] pt-2.5 text-xs text-[#2C5270]">
-                        <span>Terpakai: <span class="font-mono font-bold text-[#06233B]">{{ $router->used_slots_count }}</span> slot</span>
+                    <div class="mt-2.5 h-2 w-full overflow-hidden rounded-full border border-[#7FA6C9] bg-white" role="progressbar" aria-valuenow="{{ $usedPercent }}" aria-valuemin="0" aria-valuemax="100" aria-label="Pemakaian Slot {{ $router->nama_router }}">
+                        <div class="h-full {{ $barColor }}" style="width: {{ $usedPercent }}%"></div>
+                    </div>
+
+                    <div class="mt-2.5 flex items-center justify-between border-t border-[#7FA6C9] pt-2.5 text-xs text-[#2C5270]">
+                        <span>Terpakai: <span class="font-mono font-bold text-[#06233B]">{{ $used }}</span> slot</span>
                         <form method="POST" action="{{ route('admin.slots.sync') }}">
                             @csrf
                             <input type="hidden" name="router_id" value="{{ $router->id }}">
                             <button
                                 type="submit"
-                                class="inline-flex min-h-[44px] items-center rounded-lg border border-[#5B82A6] bg-white px-3 py-1.5 text-xs font-bold text-[#005F99] hover:bg-[#005F99] hover:text-white active:bg-[#043A5E]">
+                                class="inline-flex min-h-[44px] items-center rounded-lg border border-[#4A7396] bg-white px-3 py-1.5 text-xs font-bold text-[#005F99] hover:bg-[#005F99] hover:text-white active:bg-[#043A5E]">
                                 Sync Router
                             </button>
                         </form>
                     </div>
                 </div>
                 @empty
-                <div class="rounded-xl border border-[#B8D4EC] bg-[#EDF5FC] p-4 text-xs text-[#2C5270]">
+                <div class="rounded-xl border border-[#4A7396] bg-[#EDF5FC] p-4 text-xs text-[#2C5270]">
                     Belum ada router distribusi terdaftar. Tambahkan router distribusi melalui menu Master Router.
                 </div>
                 @endforelse
@@ -347,49 +356,6 @@
         </aside>
     </div>
 
-    <div
-        x-show="activePhotoModal !== null"
-        x-cloak
-        @keydown.escape.window="activePhotoModal = null"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-[#06233B]/80 p-4"
-        role="dialog"
-        aria-modal="true">
-        <template x-if="activePhotoModal">
-            <div class="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-2xl border-2 border-[#005F99] bg-white p-5 shadow-2xl sm:p-6">
-                <div class="flex items-center justify-between border-b border-[#B8D4EC] pb-3">
-                    <div>
-                        <h3 class="text-base font-extrabold text-[#06233B]" x-text="'Dokumentasi 5 Foto PSB: ' + activePhotoModal.nama_pelanggan"></h3>
-                        <p class="text-xs font-medium text-[#2C5270]" x-text="'ODP: ' + activePhotoModal.odp"></p>
-                    </div>
-                    <button
-                        type="button"
-                        @click="activePhotoModal = null"
-                        class="min-h-[44px] rounded-lg border-[1.5px] border-[#5B82A6] bg-[#EDF5FC] px-4 py-2 text-xs font-bold text-[#06233B] hover:bg-[#E0F2FE]">
-                        Tutup
-                    </button>
-                </div>
-
-                <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    <template x-for="photo in activePhotoModal.photos" :key="photo.label">
-                        <div class="flex flex-col justify-between rounded-xl border border-[#5B82A6] bg-[#EDF5FC] p-3">
-                            <div>
-                                <div class="text-xs font-bold text-[#06233B]" x-text="photo.label"></div>
-                                <a :href="photo.url" target="_blank" rel="noopener noreferrer" class="mt-2 block overflow-hidden rounded-lg border border-[#B8D4EC] bg-white">
-                                    <img :src="photo.url" :alt="photo.label" class="h-44 w-full object-cover">
-                                </a>
-                            </div>
-                            <a
-                                :href="photo.url"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                class="mt-2.5 inline-flex min-h-[44px] items-center justify-center rounded-lg bg-[#005F99] px-3 py-2 text-xs font-bold text-white hover:bg-[#054A78]">
-                                Buka Ukuran Penuh
-                            </a>
-                        </div>
-                    </template>
-                </div>
-            </div>
-        </template>
-    </div>
+    <x-noc.photo-inspector />
 </div>
 @endsection

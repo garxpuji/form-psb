@@ -9,10 +9,17 @@ use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\View\View;
 
 class AuthController extends Controller
 {
+    /**
+     * Precomputed bcrypt dummy hash used to prevent timing-based username enumeration.
+     */
+    private const DUMMY_BCRYPT_HASH = '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi';
+
     public function showLogin(): View|RedirectResponse
     {
         if (Auth::check()) {
@@ -24,30 +31,19 @@ class AuthController extends Controller
 
     public function login(LoginRequest $request): RedirectResponse
     {
+        $request->ensureIsNotRateLimited();
+
         $credentials = $request->validated();
         $username = strtolower(trim((string) $credentials['username']));
+        $password = (string) $credentials['password'];
 
         $existingUser = User::where('username', $username)->first();
+        $targetHash = $existingUser !== null ? $existingUser->password : self::DUMMY_BCRYPT_HASH;
+        $passwordMatches = Hash::check($password, $targetHash);
 
-        if ($existingUser !== null && ! $existingUser->is_active) {
-            return back()
-                ->withInput($request->only('username'))
-                ->withErrors([
-                    'username' => 'Akun Anda sedang tidak aktif. Silakan hubungi Administrator NOC.',
-                ]);
-        }
+        if ($existingUser === null || ! $passwordMatches) {
+            RateLimiter::hit($request->throttleKey(), 60);
 
-        // Force remember-me token so field technicians remain signed in on mobile devices.
-        $attemptSuccess = Auth::attempt(
-            [
-                'username' => $username,
-                'password' => $credentials['password'],
-                'is_active' => true,
-            ],
-            true
-        );
-
-        if (! $attemptSuccess) {
             return back()
                 ->withInput($request->only('username'))
                 ->withErrors([
@@ -55,6 +51,25 @@ class AuthController extends Controller
                 ]);
         }
 
+        // Only reveal inactive status after valid credentials are verified (prevents account enumeration).
+        if (! $existingUser->is_active) {
+            RateLimiter::hit($request->throttleKey(), 60);
+
+            return back()
+                ->withInput($request->only('username'))
+                ->withErrors([
+                    'username' => 'Akun Anda sedang tidak aktif. Silakan hubungi Administrator NOC.',
+                ]);
+        }
+
+        RateLimiter::clear($request->throttleKey());
+
+        // Default remember-me ON for field technicians on mobile, opt-in only for NOC Administrators.
+        $remember = $request->has('remember')
+            ? $request->boolean('remember')
+            : ! $existingUser->isAdmin();
+
+        Auth::login($existingUser, $remember);
         $request->session()->regenerate();
 
         return redirect()->intended(route('psb.create'));

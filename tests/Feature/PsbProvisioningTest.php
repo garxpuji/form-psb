@@ -35,6 +35,7 @@ class PsbProvisioningTest extends TestCase
         $this->seed(DatabaseSeeder::class);
         Config::set('services.telegram.bot_token', 'test-bot-token');
         Config::set('services.mikrotik.pppoe_default_password', 'psb12345');
+        Storage::fake('local');
         Storage::fake('public');
     }
 
@@ -161,8 +162,10 @@ class PsbProvisioningTest extends TestCase
                     $this->assertContains('=password=psb12345', $attrs);
                     $this->assertContains('=service=pppoe', $attrs);
                     $this->assertContains('=profile=PAKET-10M', $attrs);
+
                     return ['after' => ['ret' => '*10']];
                 }
+
                 return [];
             });
 
@@ -196,11 +199,11 @@ class PsbProvisioningTest extends TestCase
         $this->assertSame('https://www.google.com/maps?q=-6.200000,106.816666', $order->shareloc);
         $this->assertSame(768, $odp->fresh()->last_seq);
 
-        Storage::disk('public')->assertExists($order->foto_mac_ont);
-        Storage::disk('public')->assertExists($order->foto_odp);
-        Storage::disk('public')->assertExists($order->foto_kertas_registrasi);
-        Storage::disk('public')->assertExists($order->foto_ktp_pelanggan);
-        Storage::disk('public')->assertExists($order->foto_rumah_pelanggan);
+        Storage::disk('local')->assertExists($order->foto_mac_ont);
+        Storage::disk('local')->assertExists($order->foto_odp);
+        Storage::disk('local')->assertExists($order->foto_kertas_registrasi);
+        Storage::disk('local')->assertExists($order->foto_ktp_pelanggan);
+        Storage::disk('local')->assertExists($order->foto_rumah_pelanggan);
 
         $team1Group = TelegramGroup::where('nama_grup', 'TEAM 1')->firstOrFail();
         Http::assertSent(function ($request) use ($team1Group): bool {

@@ -9,17 +9,22 @@ use App\Models\Odp;
 use App\Models\Paket;
 use App\Models\PsbOrder;
 use App\Models\Sale;
+use App\Models\User;
 use App\Services\MikrotikProvisionerService;
 use App\Services\TelegramService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class PsbOrderController extends Controller
 {
     public function create(Request $request, TelegramService $telegramService): View
     {
-        /** @var \App\Models\User $user */
+        /** @var User $user */
         $user = $request->user();
         $user->loadMissing('telegramGroup');
 
@@ -57,10 +62,10 @@ class PsbOrderController extends Controller
         StorePsbOrderRequest $request,
         MikrotikProvisionerService $provisioner,
         TelegramService $telegramService
-    ): RedirectResponse {
+    ): RedirectResponse|JsonResponse {
         $validated = $request->validated();
 
-        /** @var \App\Models\User $user */
+        /** @var User $user */
         $user = $request->user();
 
         /** @var Odp $odp */
@@ -73,13 +78,14 @@ class PsbOrderController extends Controller
         );
         $tipeKoneksi = $odp->status_upgrade === 'upgrade' ? 'pppoe' : 'static_ip';
 
-        $storageDir = 'psb-photos/' . now()->format('Y-m');
+        $storageDir = 'psb-photos/'.now()->format('Y-m');
 
-        $fotoMacOntPath = (string) $request->file('foto_mac_ont')->store($storageDir, 'public');
-        $fotoOdpPath = (string) $request->file('foto_odp')->store($storageDir, 'public');
-        $fotoKertasPath = (string) $request->file('foto_kertas_registrasi')->store($storageDir, 'public');
-        $fotoKtpPath = (string) $request->file('foto_ktp_pelanggan')->store($storageDir, 'public');
-        $fotoRumahPath = (string) $request->file('foto_rumah_pelanggan')->store($storageDir, 'public');
+        // Store customer documents & KTP strictly on the private local disk with EXIF stripped.
+        $fotoMacOntPath = $this->storePrivateSanitizedPhoto($request->file('foto_mac_ont'), $storageDir);
+        $fotoOdpPath = $this->storePrivateSanitizedPhoto($request->file('foto_odp'), $storageDir);
+        $fotoKertasPath = $this->storePrivateSanitizedPhoto($request->file('foto_kertas_registrasi'), $storageDir);
+        $fotoKtpPath = $this->storePrivateSanitizedPhoto($request->file('foto_ktp_pelanggan'), $storageDir);
+        $fotoRumahPath = $this->storePrivateSanitizedPhoto($request->file('foto_rumah_pelanggan'), $storageDir);
 
         $order = PsbOrder::create([
             'user_id' => $user->id,
@@ -129,26 +135,67 @@ class PsbOrderController extends Controller
 
         $telegramSent = $telegramService->sendPsbReport($order, $user);
 
+        $psbResult = [
+            'order_id' => $order->id,
+            'status_sync' => $order->status_sync,
+            'tipe_koneksi' => $order->tipe_koneksi,
+            'hasil_poe_ip' => $order->status_sync === 'success'
+                ? $order->hasil_poe_ip
+                : TelegramService::FAILED_POE_IP_LABEL,
+            'raw_poe_ip' => $order->hasil_poe_ip,
+            'nama_pelanggan' => $order->nama_pelanggan,
+            'shareloc' => $order->shareloc,
+            'odp_nama' => $order->odp?->nama_odp,
+            'port' => $order->port,
+            'paket_nama' => $order->paket?->nama_paket,
+            'mac_address' => $order->mac_address,
+            'sales_kode' => $order->sales?->kode_sales_ip ?? 'TANPA SALES',
+            'nama_teknisi' => $order->nama_teknisi,
+            'error_log' => $order->error_log,
+            'telegram_sent' => $telegramSent,
+        ];
+
+        if ($request->wantsJson()) {
+            $request->session()->flash('psb_result', $psbResult);
+
+            return response()->json([
+                'ok' => true,
+                'redirect' => route('psb.create'),
+            ]);
+        }
+
         return redirect()
             ->route('psb.create')
-            ->with('psb_result', [
-                'order_id' => $order->id,
-                'status_sync' => $order->status_sync,
-                'tipe_koneksi' => $order->tipe_koneksi,
-                'hasil_poe_ip' => $order->status_sync === 'success'
-                    ? $order->hasil_poe_ip
-                    : TelegramService::FAILED_POE_IP_LABEL,
-                'raw_poe_ip' => $order->hasil_poe_ip,
-                'nama_pelanggan' => $order->nama_pelanggan,
-                'shareloc' => $order->shareloc,
-                'odp_nama' => $order->odp?->nama_odp,
-                'port' => $order->port,
-                'paket_nama' => $order->paket?->nama_paket,
-                'mac_address' => $order->mac_address,
-                'sales_kode' => $order->sales?->kode_sales_ip ?? 'TANPA SALES',
-                'nama_teknisi' => $order->nama_teknisi,
-                'error_log' => $order->error_log,
-                'telegram_sent' => $telegramSent,
-            ]);
+            ->with('psb_result', $psbResult);
+    }
+
+    /**
+     * Re-encode uploaded image via GD when supported to strip EXIF metadata and polyglot payloads,
+     * storing strictly on the non-public `local` disk.
+     */
+    private function storePrivateSanitizedPhoto(UploadedFile $file, string $storageDir): string
+    {
+        $realPath = $file->getRealPath();
+
+        if ($realPath !== false && function_exists('imagecreatefromstring')) {
+            $rawBytes = @file_get_contents($realPath);
+            $image = $rawBytes !== false ? @imagecreatefromstring($rawBytes) : false;
+
+            if ($image !== false) {
+                ob_start();
+                $encoded = @imagejpeg($image, null, 85);
+                $cleanBytes = ob_get_clean();
+                imagedestroy($image);
+
+                if ($encoded && is_string($cleanBytes) && $cleanBytes !== '') {
+                    $filename = $storageDir.'/'.Str::ulid()->toBase32().'.jpg';
+                    Storage::disk('local')->put($filename, $cleanBytes);
+
+                    return $filename;
+                }
+            }
+        }
+
+        return (string) $file->store($storageDir, 'local');
     }
 }

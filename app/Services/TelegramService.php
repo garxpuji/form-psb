@@ -65,7 +65,7 @@ class TelegramService
             "JARAK KABEL  : {$order->jarak_kabel}",
             "SIGNAL ODP   : {$order->signal_odp}",
             "SIGNAL ONT   : {$order->signal_ont}",
-            'SALES        : ' . ($order->sales?->kode_sales_ip ?? 'TANPA SALES'),
+            'SALES        : '.($order->sales?->kode_sales_ip ?? 'TANPA SALES'),
             "NAMA TEKNISI : {$order->nama_teknisi}",
             '[AUTO-NOC]',
         ];
@@ -73,7 +73,7 @@ class TelegramService
         $body = implode("\n", $lines);
 
         if ($targetUser !== null && $this->isNonTeamUser($targetUser)) {
-            return "[NON-TIM PSB]\n" . $body;
+            return "[NON-TIM PSB]\n".$body;
         }
 
         return $body;
@@ -88,6 +88,7 @@ class TelegramService
             Log::warning('TelegramService: Tidak dapat mengirim laporan karena user order tidak ditemukan.', [
                 'order_id' => $order->id,
             ]);
+
             return false;
         }
 
@@ -111,7 +112,7 @@ class TelegramService
         } catch (\Throwable $e) {
             Log::error('TelegramService: Gagal mengirim laporan PSB ke Telegram.', [
                 'order_id' => $order->id,
-                'error' => $e->getMessage(),
+                'error' => $this->redactBotToken($e->getMessage()),
             ]);
 
             return false;
@@ -125,28 +126,32 @@ class TelegramService
             return false;
         }
 
-        $photoFields = [
-            'foto_mac_ont' => '1. Foto MAC ONT',
-            'foto_odp' => '2. Foto ODP',
-            'foto_kertas_registrasi' => '3. Foto Kertas Registrasi',
-            'foto_ktp_pelanggan' => '4. Foto KTP Pelanggan',
-            'foto_rumah_pelanggan' => '5. Foto Rumah Pelanggan',
-        ];
-
-        $disk = Storage::disk('public');
+        $localDisk = Storage::disk('local');
+        $publicDisk = Storage::disk('public');
         $mediaItems = [];
         $attachments = [];
         $index = 0;
 
-        foreach ($photoFields as $field => $label) {
+        foreach (PsbOrder::PHOTO_FIELDS as $field => $label) {
             $relPath = (string) ($order->{$field} ?? '');
-            if ($relPath === '' || ! $disk->exists($relPath)) {
+            if ($relPath === '') {
+                continue;
+            }
+
+            $contents = null;
+            if ($localDisk->exists($relPath)) {
+                $contents = $localDisk->get($relPath);
+            } elseif ($publicDisk->exists($relPath)) {
+                $contents = $publicDisk->get($relPath);
+            }
+
+            if ($contents === null) {
                 continue;
             }
 
             $attachKey = "photo_{$index}";
             $attachments[$attachKey] = [
-                'contents' => $disk->get($relPath),
+                'contents' => $contents,
                 'filename' => basename($relPath),
             ];
 
@@ -185,8 +190,9 @@ class TelegramService
             Log::warning('TelegramService: Gagal mengirim album foto PSB ke Telegram.', [
                 'order_id' => $order->id,
                 'status' => $response->status(),
-                'body' => $response->body(),
+                'body' => $this->redactBotToken($response->body()),
             ]);
+
             return false;
         }
 
@@ -207,6 +213,7 @@ class TelegramService
                 'chat_id' => $chatId,
                 'thread_id' => $threadId,
             ]);
+
             return false;
         }
 
@@ -235,7 +242,7 @@ class TelegramService
         if (! $response->successful()) {
             Log::error('TelegramService: API Telegram mengembalikan status error.', [
                 'status' => $response->status(),
-                'body' => $response->body(),
+                'body' => $this->redactBotToken($response->body()),
                 'chat_id' => $chatId,
             ]);
 
@@ -243,5 +250,16 @@ class TelegramService
         }
 
         return true;
+    }
+
+    private function redactBotToken(string $message): string
+    {
+        $botToken = trim((string) config('services.telegram.bot_token', ''));
+
+        if ($botToken === '') {
+            return $message;
+        }
+
+        return str_replace($botToken, '[REDACTED-BOT-TOKEN]', $message);
     }
 }

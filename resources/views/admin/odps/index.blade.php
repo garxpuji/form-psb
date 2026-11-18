@@ -1,8 +1,8 @@
 @extends('layouts.admin', ['title' => 'Master Data ODP'])
 
 @section('content')
-<div class="space-y-4 sm:space-y-5" x-data="{ editingOdp: null }">
-    <div class="rounded-2xl border-[1.5px] border-[#5B82A6] bg-white p-4 shadow-sm sm:p-5">
+<div class="space-y-4 sm:space-y-5" x-data="{ editingOdp: null, confirmingToggleOdp: null }">
+    <div class="rounded-2xl border-[1.5px] border-[#4A7396] bg-white p-4 shadow-sm sm:p-5">
         <h1 class="text-[clamp(1.125rem,2vw,1.35rem)] font-extrabold text-[#06233B]">Master Data ODP & Mode Koneksi</h1>
         <p class="mt-0.5 text-xs font-medium text-[#2C5270]">
             Atur daftar ODP lapangan. Saat tim lapangan selesai memigrasikan jalur ke PPPoE, tekan tombol ubah status pada baris ODP agar kiriman PSB berikutnya langsung membuat PPPoE Secret.
@@ -10,7 +10,7 @@
     </div>
 
     <div class="grid grid-cols-1 gap-4 sm:gap-5 xl:grid-cols-12 xl:items-start">
-        <div class="rounded-2xl border-[1.5px] border-[#5B82A6] bg-white p-4 shadow-sm sm:p-5 xl:col-span-4">
+        <div class="rounded-2xl border-[1.5px] border-[#4A7396] bg-white p-4 shadow-sm sm:p-5 xl:col-span-4">
             <h2 class="text-base font-extrabold text-[#06233B]">Tambah ODP Baru</h2>
             <form method="POST" action="{{ route('admin.odps.store') }}" class="mt-4 space-y-4">
                 @csrf
@@ -22,7 +22,7 @@
                         type="text"
                         required
                         placeholder="Contoh: U15 B"
-                        class="mt-1 block min-h-[44px] w-full rounded-lg border-[1.5px] border-[#5B82A6] bg-white px-3 py-2 text-sm font-medium text-[#06233B] placeholder-[#2C5270]/70">
+                        class="mt-1 block min-h-[44px] w-full rounded-lg border-[1.5px] border-[#4A7396] bg-white px-3 py-2 text-sm font-semibold text-[#06233B]">
                 </div>
 
                 <div>
@@ -33,7 +33,7 @@
                         type="text"
                         required
                         placeholder="Contoh: 12"
-                        class="mt-1 block min-h-[44px] w-full rounded-lg border-[1.5px] border-[#5B82A6] bg-white px-3 py-2 font-mono text-sm font-bold text-[#06233B] placeholder-[#2C5270]/70">
+                        class="mt-1 block min-h-[44px] w-full rounded-lg border-[1.5px] border-[#4A7396] bg-white px-3 py-2 font-mono text-sm font-bold text-[#06233B]">
                 </div>
 
                 <div>
@@ -41,7 +41,7 @@
                     <select
                         id="status_upgrade"
                         name="status_upgrade"
-                        class="mt-1 block min-h-[44px] w-full rounded-lg border-[1.5px] border-[#5B82A6] bg-white px-3 py-2 text-sm font-medium text-[#06233B]">
+                        class="mt-1 block min-h-[44px] w-full rounded-lg border-[1.5px] border-[#4A7396] bg-white px-3 py-2 text-sm font-semibold text-[#06233B]">
                         <option value="belum_upgrade">Belum Upgrade [Static IP]</option>
                         <option value="upgrade">Sudah Upgrade [PPPoE]</option>
                     </select>
@@ -55,7 +55,7 @@
                         type="number"
                         min="0"
                         value="0"
-                        class="mt-1 block min-h-[44px] w-full rounded-lg border-[1.5px] border-[#5B82A6] bg-white px-3 py-2 font-mono text-sm font-bold text-[#06233B]">
+                        class="mt-1 block min-h-[44px] w-full rounded-lg border-[1.5px] border-[#4A7396] bg-white px-3 py-2 font-mono text-sm font-bold text-[#06233B]">
                 </div>
 
                 <button
@@ -66,20 +66,20 @@
             </form>
         </div>
 
-        <div class="overflow-hidden rounded-2xl border-[1.5px] border-[#5B82A6] bg-white shadow-sm xl:col-span-8">
+        <div class="overflow-hidden rounded-2xl border-[1.5px] border-[#4A7396] bg-white shadow-sm xl:col-span-8">
             <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-[#B8D4EC] text-left text-sm">
+                <table class="min-w-full divide-y divide-[#7FA6C9] text-left text-sm">
                     <thead class="bg-[#072A47] text-xs font-bold uppercase tracking-wider text-white">
                         <tr>
-                            <th class="px-4 py-3.5">Nama ODP</th>
-                            <th class="px-4 py-3.5">Kode PPPoE</th>
-                            <th class="px-4 py-3.5">Status & Ubah Cepat</th>
-                            <th class="px-4 py-3.5">Last Seq</th>
-                            <th class="px-4 py-3.5">Total PSB</th>
-                            <th class="px-4 py-3.5 text-right">Tindakan</th>
+                            <th scope="col" class="px-4 py-3.5">Nama ODP</th>
+                            <th scope="col" class="px-4 py-3.5">Kode PPPoE</th>
+                            <th scope="col" class="px-4 py-3.5">Status & Ubah Mode</th>
+                            <th scope="col" class="px-4 py-3.5">Last Seq</th>
+                            <th scope="col" class="px-4 py-3.5">Total PSB</th>
+                            <th scope="col" class="px-4 py-3.5 text-right">Tindakan</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-[#B8D4EC] bg-white">
+                    <tbody class="divide-y divide-[#7FA6C9] bg-white">
                         @forelse ($odps as $odp)
                         <tr class="hover:bg-[#EDF5FC]/70">
                             <td class="px-4 py-3 font-extrabold text-[#06233B]">{{ $odp->nama_odp }}</td>
@@ -96,15 +96,12 @@
                                     </span>
                                     @endif
 
-                                    <form method="POST" action="{{ route('admin.odps.toggle-upgrade', $odp) }}">
-                                        @csrf
-                                        @method('PATCH')
-                                        <button
-                                            type="submit"
-                                            class="inline-flex min-h-[44px] items-center rounded-lg border-[1.5px] border-[#005F99] bg-[#EDF5FC] px-3 py-2 text-xs font-bold text-[#06233B] hover:bg-[#005F99] hover:text-white active:bg-[#043A5E]">
-                                            {{ $odp->status_upgrade === 'upgrade' ? 'Ubah ke [IP]' : 'Set [PPPoE] Upgrade' }}
-                                        </button>
-                                    </form>
+                                    <button
+                                        type="button"
+                                        @click="confirmingToggleOdp = @js($odp)"
+                                        class="inline-flex min-h-[44px] items-center rounded-lg border-[1.5px] border-[#005F99] bg-[#EDF5FC] px-3 py-2 text-xs font-bold text-[#06233B] hover:bg-[#005F99] hover:text-white active:bg-[#043A5E]">
+                                        {{ $odp->status_upgrade === 'upgrade' ? 'Ubah ke [IP]' : 'Set [PPPoE] Upgrade' }}
+                                    </button>
                                 </div>
                             </td>
                             <td class="px-4 py-3 font-mono text-xs font-bold text-[#2C5270]">
@@ -116,7 +113,7 @@
                                     <button
                                         type="button"
                                         @click="editingOdp = @js($odp)"
-                                        class="inline-flex min-h-[44px] items-center rounded-lg border-[1.5px] border-[#5B82A6] bg-[#EDF5FC] px-3 py-2 font-bold text-[#06233B] hover:bg-[#E0F2FE]">
+                                        class="inline-flex min-h-[44px] items-center rounded-lg border-[1.5px] border-[#4A7396] bg-[#EDF5FC] px-3 py-2 font-bold text-[#06233B] hover:bg-[#E0F2FE]">
                                         Edit
                                     </button>
                                     <form
@@ -148,61 +145,106 @@
         </div>
     </div>
 
+    {{-- CONFIRM TOGGLE ODP MODE MODAL (Prevents Accidental 1-Tap Production Routing Flips) --}}
+    <div
+        x-show="confirmingToggleOdp !== null"
+        x-cloak
+        x-trap.inert.noscroll="confirmingToggleOdp !== null"
+        @keydown.escape.window="confirmingToggleOdp = null"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-[#06233B]/80 p-4"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="toggle-odp-modal-title">
+        <template x-if="confirmingToggleOdp">
+            <div class="w-full max-w-md rounded-2xl border-2 border-[#005F99] bg-white p-5 shadow-2xl sm:p-6">
+                <h3 id="toggle-odp-modal-title" class="text-base font-extrabold text-[#06233B]" x-text="'Konfirmasi Ubah Mode ODP ' + confirmingToggleOdp.nama_odp"></h3>
+                <p class="mt-2 text-xs leading-relaxed text-[#2C5270]">
+                    Anda akan mengubah mode koneksi ODP <strong class="text-[#06233B]" x-text="confirmingToggleOdp.nama_odp"></strong> menjadi
+                    <strong class="font-mono text-[#005F99]" x-text="confirmingToggleOdp.status_upgrade === 'upgrade' ? 'BELUM UPGRADE [Static IP]' : 'UPGRADE [PPPoE Secret]'"></strong>.
+                    Seluruh penginputan PSB teknisi berikutnya pada ODP ini akan langsung mengikuti mode baru tersebut.
+                </p>
+
+                <form method="POST" :action="'/admin/odps/' + confirmingToggleOdp.id + '/toggle-upgrade'" class="mt-5 flex justify-end gap-2">
+                    @csrf
+                    @method('PATCH')
+                    <button
+                        type="button"
+                        @click="confirmingToggleOdp = null"
+                        class="min-h-[44px] rounded-lg border-[1.5px] border-[#4A7396] bg-[#EDF5FC] px-4 py-2 text-xs font-bold text-[#06233B] hover:bg-[#E0F2FE]">
+                        Batal
+                    </button>
+                    <button
+                        type="submit"
+                        class="min-h-[44px] rounded-lg bg-[#005F99] px-4 py-2 text-xs font-bold text-white hover:bg-[#054A78]">
+                        Ya, Ubah Mode ODP
+                    </button>
+                </form>
+            </div>
+        </template>
+    </div>
+
+    {{-- EDIT ODP MODAL --}}
     <div
         x-show="editingOdp !== null"
         x-cloak
+        x-trap.inert.noscroll="editingOdp !== null"
         @keydown.escape.window="editingOdp = null"
         class="fixed inset-0 z-50 flex items-center justify-center bg-[#06233B]/80 p-4"
         role="dialog"
-        aria-modal="true">
+        aria-modal="true"
+        aria-labelledby="edit-odp-modal-title">
         <template x-if="editingOdp">
             <div class="w-full max-w-md rounded-2xl border-2 border-[#005F99] bg-white p-5 shadow-2xl sm:p-6">
-                <h3 class="text-base font-extrabold text-[#06233B]" x-text="'Edit ODP: ' + editingOdp.nama_odp"></h3>
+                <h3 id="edit-odp-modal-title" class="text-base font-extrabold text-[#06233B]" x-text="'Edit ODP: ' + editingOdp.nama_odp"></h3>
                 <form method="POST" :action="'/admin/odps/' + editingOdp.id" class="mt-4 space-y-4">
                     @csrf
                     @method('PUT')
                     <div>
-                        <label class="block text-xs font-bold uppercase text-[#06233B]">Nama ODP</label>
+                        <label for="edit_nama_odp" class="block text-xs font-bold uppercase text-[#06233B]">Nama ODP</label>
                         <input
+                            id="edit_nama_odp"
                             type="text"
                             name="nama_odp"
                             x-model="editingOdp.nama_odp"
                             required
-                            class="mt-1 block min-h-[44px] w-full rounded-lg border-[1.5px] border-[#5B82A6] bg-white px-3 py-2 text-sm font-medium text-[#06233B]">
+                            class="mt-1 block min-h-[44px] w-full rounded-lg border-[1.5px] border-[#4A7396] bg-white px-3 py-2 text-sm font-semibold text-[#06233B]">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold uppercase text-[#06233B]">Kode ODP</label>
+                        <label for="edit_kode_odp" class="block text-xs font-bold uppercase text-[#06233B]">Kode ODP</label>
                         <input
+                            id="edit_kode_odp"
                             type="text"
                             name="kode_odp"
                             x-model="editingOdp.kode_odp"
                             required
-                            class="mt-1 block min-h-[44px] w-full rounded-lg border-[1.5px] border-[#5B82A6] bg-white px-3 py-2 font-mono text-sm font-bold text-[#06233B]">
+                            class="mt-1 block min-h-[44px] w-full rounded-lg border-[1.5px] border-[#4A7396] bg-white px-3 py-2 font-mono text-sm font-bold text-[#06233B]">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold uppercase text-[#06233B]">Status Upgrade</label>
+                        <label for="edit_status_upgrade" class="block text-xs font-bold uppercase text-[#06233B]">Status Upgrade</label>
                         <select
+                            id="edit_status_upgrade"
                             name="status_upgrade"
                             x-model="editingOdp.status_upgrade"
-                            class="mt-1 block min-h-[44px] w-full rounded-lg border-[1.5px] border-[#5B82A6] bg-white px-3 py-2 text-sm font-medium text-[#06233B]">
+                            class="mt-1 block min-h-[44px] w-full rounded-lg border-[1.5px] border-[#4A7396] bg-white px-3 py-2 text-sm font-semibold text-[#06233B]">
                             <option value="belum_upgrade">Belum Upgrade [Static IP]</option>
                             <option value="upgrade">Sudah Upgrade [PPPoE]</option>
                         </select>
                     </div>
                     <div>
-                        <label class="block text-xs font-bold uppercase text-[#06233B]">Last Sequence PPPoE</label>
+                        <label for="edit_last_seq" class="block text-xs font-bold uppercase text-[#06233B]">Last Sequence PPPoE</label>
                         <input
+                            id="edit_last_seq"
                             type="number"
                             name="last_seq"
                             min="0"
                             x-model="editingOdp.last_seq"
-                            class="mt-1 block min-h-[44px] w-full rounded-lg border-[1.5px] border-[#5B82A6] bg-white px-3 py-2 font-mono text-sm font-bold text-[#06233B]">
+                            class="mt-1 block min-h-[44px] w-full rounded-lg border-[1.5px] border-[#4A7396] bg-white px-3 py-2 font-mono text-sm font-bold text-[#06233B]">
                     </div>
                     <div class="flex justify-end gap-2 pt-2">
                         <button
                             type="button"
                             @click="editingOdp = null"
-                            class="min-h-[44px] rounded-lg border-[1.5px] border-[#5B82A6] bg-[#EDF5FC] px-4 py-2 text-xs font-bold text-[#06233B]">
+                            class="min-h-[44px] rounded-lg border-[1.5px] border-[#4A7396] bg-[#EDF5FC] px-4 py-2 text-xs font-bold text-[#06233B]">
                             Batal
                         </button>
                         <button

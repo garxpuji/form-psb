@@ -42,6 +42,7 @@ class UserRequest extends FormRequest
         $routeUser = $this->route('user');
         $ignoreId = $routeUser instanceof User ? $routeUser->id : $routeUser;
         $isCreating = $this->isMethod('POST');
+        $minPasswordLength = $this->input('role') === 'admin' ? 12 : 8;
 
         return [
             'name' => ['required', 'string', 'max:150'],
@@ -51,10 +52,23 @@ class UserRequest extends FormRequest
                 'max:100',
                 Rule::unique('users', 'username')->ignore($ignoreId),
             ],
-            'password' => [$isCreating ? 'required' : 'nullable', 'string', 'min:4', 'max:255'],
+            'password' => [$isCreating ? 'required' : 'nullable', 'string', "min:{$minPasswordLength}", 'max:255'],
             'role' => ['required', Rule::in(['admin', 'teknisi', 'umum'])],
             'telegram_group_id' => ['nullable', 'integer', 'exists:telegram_groups,id'],
             'is_active' => ['required', 'boolean'],
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        $minPasswordLength = $this->input('role') === 'admin' ? 12 : 8;
+
+        return [
+            'password.min' => "Password minimal terdiri dari {$minPasswordLength} karakter.",
+            'username.unique' => 'Username tersebut sudah digunakan oleh akun lain.',
         ];
     }
 }

@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import 'tom-select/dist/css/tom-select.default.css';
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
@@ -6,6 +7,133 @@
 @source '../**/*.js';
 
 @theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-sans: 'Plus Jakarta Sans', 'Instrument Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+        'Segoe UI', Roboto, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+    /* Ocean High-Contrast Outdoor & NOC Design Tokens */
+    --color-surface-canvas: #EDF5FC;
+    --color-surface-card: #FFFFFF;
+    --color-surface-subtle: #E2EEF8;
+
+    --color-ocean-950: #051F36;
+    --color-ocean-900: #072A47;
+    --color-ocean-800: #0B3B63;
+    --color-ocean-700: #124670;
+
+    --color-action-primary: #005F99;
+    --color-action-primary-hover: #054A78;
+    --color-action-primary-active: #043A5E;
+
+    --color-ink-primary: #06233B;
+    --color-ink-secondary: #2C5270;
+    --color-ink-placeholder: #365D7D;
+
+    --color-border-strong: #4A7396;
+    --color-border-subtle: #7FA6C9;
+
+    --color-status-success-bg: #D1FAE5;
+    --color-status-success-ink: #065F46;
+    --color-status-success-border: #059669;
+
+    --color-status-warning-bg: #FEF3C7;
+    --color-status-warning-ink: #78350F;
+    --color-status-warning-border: #D97706;
+
+    --color-status-danger-bg: #FEE2E2;
+    --color-status-danger-ink: #991B1B;
+    --color-status-danger-border: #DC2626;
+}
+
+[x-cloak] {
+    display: none !important;
+}
+
+/* Prevent Tailwind v4 .space-y-* utilities from adding bottom margin to fixed full-screen modal backdrops */
+.fixed.inset-0 {
+    margin-block: 0 !important;
+}
+
+/* High-visibility keyboard focus ring (WCAG 2.4.7 & 2.4.11) */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+    outline: 2.5px solid var(--color-action-primary, #005F99) !important;
+    outline-offset: 2px !important;
+}
+
+.ocean-sidebar a:focus-visible,
+.ocean-sidebar button:focus-visible {
+    outline: 2.5px solid #BAE6FD !important;
+    outline-offset: 2px !important;
+}
+
+/* Outdoor-readable placeholders (>= 6.7:1 contrast on #FFFFFF, WCAG AA/AAA) */
+input::placeholder,
+textarea::placeholder {
+    color: var(--color-ink-placeholder, #365D7D) !important;
+    opacity: 1 !important;
+}
+
+/* Keep focused mobile inputs visible above on-screen virtual keyboards */
+input,
+select,
+textarea {
+    scroll-margin-bottom: 7rem;
+}
+
+/* Accessible TomSelect overrides matching Ocean Design System */
+.ts-wrapper.single .ts-control {
+    background: #FFFFFF !important;
+    border: 1.5px solid var(--color-border-strong, #4A7396) !important;
+    border-radius: 0.5rem !important;
+    padding: 0.625rem 0.875rem !important;
+    min-height: 46px !important;
+    color: var(--color-ink-primary, #06233B) !important;
+    font-size: 0.9375rem !important;
+    display: flex;
+    align-items: center;
+    box-shadow: none !important;
+}
+
+.ts-wrapper.single.focus .ts-control {
+    border-color: var(--color-action-primary, #005F99) !important;
+    outline: 2.5px solid var(--color-action-primary, #005F99) !important;
+    outline-offset: 1px !important;
+}
+
+.ts-control input {
+    color: var(--color-ink-primary, #06233B) !important;
+    font-size: 0.9375rem !important;
+}
+
+.ts-control input::placeholder {
+    color: var(--color-ink-placeholder, #365D7D) !important;
+    opacity: 1 !important;
+}
+
+.ts-dropdown {
+    background: #FFFFFF !important;
+    border: 1.5px solid var(--color-action-primary, #005F99) !important;
+    border-radius: 0.5rem !important;
+    color: var(--color-ink-primary, #06233B) !important;
+    margin-top: 4px !important;
+    z-index: 60 !important;
+    box-shadow: 0 12px 28px -6px rgba(7, 42, 71, 0.22) !important;
+}
+
+.ts-dropdown .option {
+    padding: 0.65rem 0.875rem !important;
+    min-height: 44px !important;
+    color: var(--color-ink-primary, #06233B) !important;
+    border-bottom: 1px solid var(--color-surface-subtle, #E2EEF8);
+}
+
+.ts-dropdown .option.active,
+.ts-dropdown .option:hover {
+    background: #E0F2FE !important;
+    color: var(--color-ink-primary, #06233B) !important;
 }

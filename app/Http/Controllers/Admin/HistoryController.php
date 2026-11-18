@@ -113,7 +113,7 @@ class HistoryController extends Controller
         $this->applyPeriodAndCommonFilters($query, $filters, $periodBounds);
         $this->applySalesFilter($query, $filters['filter_sales']);
 
-        $filename = 'rekap-psb-' . now()->format('Ymd-His') . '.csv';
+        $filename = 'rekap-psb-'.now()->format('Ymd-His').'.csv';
 
         return response()->streamDownload(function () use ($query): void {
             $handle = fopen('php://output', 'w');
@@ -151,23 +151,23 @@ class HistoryController extends Controller
                 fputcsv($handle, [
                     $order->id,
                     $order->created_at?->format('Y-m-d H:i:s'),
-                    $order->nama_pelanggan,
-                    $order->no_tlp,
-                    $order->alamat,
-                    $order->shareloc,
+                    self::sanitizeCsvCell($order->nama_pelanggan),
+                    self::sanitizeCsvCell($order->no_tlp),
+                    self::sanitizeCsvCell($order->alamat),
+                    self::sanitizeCsvCell($order->shareloc),
                     $order->sales_id !== null ? 'DENGAN SALES' : 'TANPA SALES',
-                    $order->sales?->kode_sales_ip ?? 'TANPA SALES',
-                    $order->odp?->nama_odp ?? '-',
+                    self::sanitizeCsvCell($order->sales?->kode_sales_ip ?? 'TANPA SALES'),
+                    self::sanitizeCsvCell($order->odp?->nama_odp ?? '-'),
                     $order->port,
-                    $order->paket?->nama_paket ?? '-',
+                    self::sanitizeCsvCell($order->paket?->nama_paket ?? '-'),
                     strtoupper($order->tipe_koneksi),
-                    $order->hasil_poe_ip ?? 'GAGAL AUTO-CONFIG',
-                    $order->mac_address,
-                    $order->brand_router,
-                    $order->jarak_kabel,
-                    $order->signal_odp,
-                    $order->signal_ont,
-                    $order->nama_teknisi,
+                    self::sanitizeCsvCell($order->hasil_poe_ip ?? 'GAGAL AUTO-CONFIG'),
+                    self::sanitizeCsvCell($order->mac_address),
+                    self::sanitizeCsvCell($order->brand_router),
+                    self::sanitizeCsvCell($order->jarak_kabel),
+                    self::sanitizeCsvCell($order->signal_odp),
+                    self::sanitizeCsvCell($order->signal_ont),
+                    self::sanitizeCsvCell($order->nama_teknisi),
                     strtoupper($order->status_sync),
                 ]);
             }
@@ -176,6 +176,38 @@ class HistoryController extends Controller
         }, $filename, [
             'Content-Type' => 'text/csv; charset=UTF-8',
         ]);
+    }
+
+    /**
+     * Neutralize spreadsheet formula / DDE injection (=, +, -, @, tab, CR/LF) while keeping valid negative dBm numbers intact.
+     */
+    public static function sanitizeCsvCell(mixed $value): string|int|float|null
+    {
+        if ($value === null || is_int($value) || is_float($value)) {
+            return $value;
+        }
+
+        $str = (string) $value;
+        if ($str === '') {
+            return '';
+        }
+
+        $firstChar = $str[0];
+
+        if (in_array($firstChar, ['=', '+', '@', "\t", "\r", "\n"], true)) {
+            return "'".$str;
+        }
+
+        if ($firstChar === '-') {
+            // Allow standard optical attenuation readings such as "-17.4" or "-17.4 dBm"
+            if (preg_match('/^-\d{1,3}([.,]\d{1,2})?(\s*dBm)?$/i', trim($str)) === 1) {
+                return $str;
+            }
+
+            return "'".$str;
+        }
+
+        return $str;
     }
 
     /**
@@ -214,10 +246,11 @@ class HistoryController extends Controller
         try {
             if ($periode === 'harian') {
                 $date = Carbon::parse($filters['tanggal_harian']);
+
                 return [
                     'start' => $date->copy()->startOfDay(),
                     'end' => $date->copy()->endOfDay(),
-                    'label' => 'Harian: ' . $date->format('d/m/Y'),
+                    'label' => 'Harian: '.$date->format('d/m/Y'),
                 ];
             }
 
@@ -236,7 +269,7 @@ class HistoryController extends Controller
                 return [
                     'start' => $start,
                     'end' => $end,
-                    'label' => 'Rentang Tanggal: ' . $start->format('d/m/Y') . ' s/d ' . $end->format('d/m/Y'),
+                    'label' => 'Rentang Tanggal: '.$start->format('d/m/Y').' s/d '.$end->format('d/m/Y'),
                 ];
             }
 
@@ -343,11 +376,13 @@ class HistoryController extends Controller
     {
         if ($filterSales === 'tanpa_sales') {
             $query->whereNull('sales_id');
+
             return;
         }
 
         if ($filterSales === 'dengan_sales') {
             $query->whereNotNull('sales_id');
+
             return;
         }
 

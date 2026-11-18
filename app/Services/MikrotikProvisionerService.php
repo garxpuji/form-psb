@@ -44,17 +44,20 @@ class MikrotikProvisionerService
 
     public static function formatDateComment(): string
     {
-        return 'PSB ' . now()->format('j-n-Y');
+        return 'PSB '.now()->format('j-n-Y');
     }
 
     public function createClient(Router $router): ClientInterface
     {
         $timeout = (int) config('services.mikrotik.timeout', 10);
         $attempts = (int) config('services.mikrotik.attempts', 2);
+        $port = (int) $router->api_port;
+        $useSsl = $port === Config::PORT_SSL;
 
         $config = new Config([
             'host' => $router->ip_host,
-            'port' => (int) $router->api_port,
+            'port' => $port,
+            'ssl' => $useSsl,
             'user' => $router->username,
             'pass' => (string) $router->password,
             'timeout' => $timeout,
@@ -133,7 +136,7 @@ class MikrotikProvisionerService
 
             $pppoeUsername = "{$lockedOdp->kode_odp}_01_{$kodeSalesPppoe}_{$paddedSeq}_{$cleanCustomerName}";
             $defaultPassword = (string) config('services.mikrotik.pppoe_default_password', '123456');
-            $comment = self::formatDateComment() . " | ODP:{$lockedOdp->nama_odp} P:{$order->port}";
+            $comment = self::formatDateComment()." | ODP:{$lockedOdp->nama_odp} P:{$order->port}";
 
             $addQuery = (new Query('/ppp/secret/add'))
                 ->equal('name', $pppoeUsername)
@@ -159,7 +162,7 @@ class MikrotikProvisionerService
 
         if ($router === null) {
             $router = Router::where('is_pppoe_server', false)
-                ->whereHas('ipSlots', fn($q) => $q->where('status', 'available'))
+                ->whereHas('ipSlots', fn ($q) => $q->where('status', 'available'))
                 ->orderBy('id')
                 ->first()
                 ?? Router::where('is_pppoe_server', false)->orderBy('id')->first();
@@ -257,7 +260,7 @@ class MikrotikProvisionerService
                 if (count($octets) !== 4) {
                     throw new RuntimeException("Format IP address tidak valid pada slot: {$ip}");
                 }
-                $octet34 = $octets[2] . $octets[3];
+                $octet34 = $octets[2].$octets[3];
 
                 $cleanName = $this->cleanCustomerNameForQueue($order->nama_pelanggan);
 
@@ -313,7 +316,7 @@ class MikrotikProvisionerService
         }
 
         if (isset($response['after']['message']) && is_string($response['after']['message'])) {
-            throw new RuntimeException('RouterOS API Error: ' . $response['after']['message']);
+            throw new RuntimeException('RouterOS API Error: '.$response['after']['message']);
         }
 
         return $response;

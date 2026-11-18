@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\HistoryController;
 use App\Http\Controllers\Admin\OdpController;
+use App\Http\Controllers\Admin\OrderPhotoController;
 use App\Http\Controllers\Admin\PaketController;
 use App\Http\Controllers\Admin\RouterController;
 use App\Http\Controllers\Admin\SaleController;
@@ -33,7 +34,9 @@ Route::post('/logout', [AuthController::class, 'logout'])
 
 Route::middleware(['auth', 'active'])->group(function (): void {
     Route::get('/psb/create', [PsbOrderController::class, 'create'])->name('psb.create');
-    Route::post('/psb', [PsbOrderController::class, 'store'])->name('psb.store');
+    Route::post('/psb', [PsbOrderController::class, 'store'])
+        ->middleware('throttle:psb-submit')
+        ->name('psb.store');
 
     Route::prefix('admin')
         ->name('admin.')
@@ -43,6 +46,8 @@ Route::middleware(['auth', 'active'])->group(function (): void {
             Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
             Route::get('/riwayat', [HistoryController::class, 'index'])->name('riwayat.index');
             Route::get('/riwayat/export', [HistoryController::class, 'export'])->name('riwayat.export');
+            Route::get('/orders/{order}/photos/{field}', OrderPhotoController::class)
+                ->name('orders.photo');
             Route::post('/orders/{order}/retry', [DashboardController::class, 'retryProvisioning'])
                 ->name('orders.retry');
             Route::post('/slots/sync', [DashboardController::class, 'syncSlots'])

@@ -2,7 +2,7 @@
 
 @section('content')
 <div class="space-y-4 sm:space-y-5" x-data="{ editingPaket: null }">
-    <div class="rounded-2xl border-[1.5px] border-[#5B82A6] bg-white p-4 shadow-sm sm:p-5">
+    <div class="rounded-2xl border-[1.5px] border-[#4A7396] bg-white p-4 shadow-sm sm:p-5">
         <h1 class="text-[clamp(1.125rem,2vw,1.35rem)] font-extrabold text-[#06233B]">Master Data Paket Internet</h1>
         <p class="mt-0.5 text-xs font-medium text-[#2C5270]">
             Atur daftar paket kecepatan pelanggan beserta nilai <code class="rounded bg-[#FEF3C7] px-1.5 py-0.5 font-mono font-bold text-[#78350F]">max-limit</code> Simple Queue dan nama <code class="rounded bg-[#E0F2FE] px-1.5 py-0.5 font-mono font-bold text-[#075985]">profile</code> PPPoE di MikroTik.
@@ -10,38 +10,41 @@
     </div>
 
     <div class="grid grid-cols-1 gap-4 sm:gap-5 xl:grid-cols-12 xl:items-start">
-        <div class="rounded-2xl border-[1.5px] border-[#5B82A6] bg-white p-4 shadow-sm sm:p-5 xl:col-span-4">
+        <div class="rounded-2xl border-[1.5px] border-[#4A7396] bg-white p-4 shadow-sm sm:p-5 xl:col-span-4">
             <h2 class="text-base font-extrabold text-[#06233B]">Tambah Paket Baru</h2>
             <form method="POST" action="{{ route('admin.pakets.store') }}" class="mt-4 space-y-4">
                 @csrf
                 <div>
-                    <label class="block text-xs font-bold uppercase text-[#06233B]">Nama Paket</label>
+                    <label for="nama_paket" class="block text-xs font-bold uppercase text-[#06233B]">Nama Paket</label>
                     <input
+                        id="nama_paket"
                         type="text"
                         name="nama_paket"
                         required
                         placeholder="Contoh: 10mbps / 20mbps"
-                        class="mt-1 block min-h-[44px] w-full rounded-lg border-[1.5px] border-[#5B82A6] bg-white px-3 py-2 text-sm font-medium text-[#06233B] placeholder-[#2C5270]/70">
+                        class="mt-1 block min-h-[44px] w-full rounded-lg border-[1.5px] border-[#4A7396] bg-white px-3 py-2 text-sm font-semibold text-[#06233B]">
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold uppercase text-[#06233B]">Simple Queue Max-Limit</label>
+                    <label for="queue_max_limit" class="block text-xs font-bold uppercase text-[#06233B]">Simple Queue Max-Limit</label>
                     <input
+                        id="queue_max_limit"
                         type="text"
                         name="queue_max_limit"
                         required
                         placeholder="Contoh: 10M/10M"
-                        class="mt-1 block min-h-[44px] w-full rounded-lg border-[1.5px] border-[#5B82A6] bg-white px-3 py-2 font-mono text-sm font-bold text-[#06233B] placeholder-[#2C5270]/70">
+                        class="mt-1 block min-h-[44px] w-full rounded-lg border-[1.5px] border-[#4A7396] bg-white px-3 py-2 font-mono text-sm font-bold text-[#06233B]">
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold uppercase text-[#06233B]">Nama Profile PPPoE MikroTik</label>
+                    <label for="pppoe_profile" class="block text-xs font-bold uppercase text-[#06233B]">Nama Profile PPPoE MikroTik</label>
                     <input
+                        id="pppoe_profile"
                         type="text"
                         name="pppoe_profile"
                         required
                         placeholder="Contoh: PAKET-10M"
-                        class="mt-1 block min-h-[44px] w-full rounded-lg border-[1.5px] border-[#5B82A6] bg-white px-3 py-2 font-mono text-sm font-bold text-[#06233B] placeholder-[#2C5270]/70">
+                        class="mt-1 block min-h-[44px] w-full rounded-lg border-[1.5px] border-[#4A7396] bg-white px-3 py-2 font-mono text-sm font-bold text-[#06233B]">
                 </div>
 
                 <button
@@ -52,19 +55,19 @@
             </form>
         </div>
 
-        <div class="overflow-hidden rounded-2xl border-[1.5px] border-[#5B82A6] bg-white shadow-sm xl:col-span-8">
+        <div class="overflow-hidden rounded-2xl border-[1.5px] border-[#4A7396] bg-white shadow-sm xl:col-span-8">
             <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-[#B8D4EC] text-left text-sm">
+                <table class="min-w-full divide-y divide-[#7FA6C9] text-left text-sm">
                     <thead class="bg-[#072A47] text-xs font-bold uppercase tracking-wider text-white">
                         <tr>
-                            <th class="px-4 py-3.5">Nama Paket</th>
-                            <th class="px-4 py-3.5">Simple Queue Max-Limit</th>
-                            <th class="px-4 py-3.5">PPPoE Profile</th>
-                            <th class="px-4 py-3.5">Total PSB</th>
-                            <th class="px-4 py-3.5 text-right">Tindakan</th>
+                            <th scope="col" class="px-4 py-3.5">Nama Paket</th>
+                            <th scope="col" class="px-4 py-3.5">Simple Queue Max-Limit</th>
+                            <th scope="col" class="px-4 py-3.5">PPPoE Profile</th>
+                            <th scope="col" class="px-4 py-3.5">Total PSB</th>
+                            <th scope="col" class="px-4 py-3.5 text-right">Tindakan</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-[#B8D4EC] bg-white">
+                    <tbody class="divide-y divide-[#7FA6C9] bg-white">
                         @forelse ($pakets as $paket)
                         <tr class="hover:bg-[#EDF5FC]/70">
                             <td class="px-4 py-3 font-extrabold text-[#06233B]">{{ $paket->nama_paket }}</td>
@@ -84,7 +87,7 @@
                                     <button
                                         type="button"
                                         @click="editingPaket = @js($paket)"
-                                        class="inline-flex min-h-[44px] items-center rounded-lg border-[1.5px] border-[#5B82A6] bg-[#EDF5FC] px-3 py-2 font-bold text-[#06233B] hover:bg-[#E0F2FE]">
+                                        class="inline-flex min-h-[44px] items-center rounded-lg border-[1.5px] border-[#4A7396] bg-[#EDF5FC] px-3 py-2 font-bold text-[#06233B] hover:bg-[#E0F2FE]">
                                         Edit
                                     </button>
                                     <form
@@ -119,48 +122,53 @@
     <div
         x-show="editingPaket !== null"
         x-cloak
+        x-trap.inert.noscroll="editingPaket !== null"
         @keydown.escape.window="editingPaket = null"
         class="fixed inset-0 z-50 flex items-center justify-center bg-[#06233B]/80 p-4"
         role="dialog"
-        aria-modal="true">
+        aria-modal="true"
+        aria-labelledby="edit-paket-modal-title">
         <template x-if="editingPaket">
             <div class="w-full max-w-md rounded-2xl border-2 border-[#005F99] bg-white p-5 shadow-2xl sm:p-6">
-                <h3 class="text-base font-extrabold text-[#06233B]" x-text="'Edit Paket: ' + editingPaket.nama_paket"></h3>
+                <h3 id="edit-paket-modal-title" class="text-base font-extrabold text-[#06233B]" x-text="'Edit Paket: ' + editingPaket.nama_paket"></h3>
                 <form method="POST" :action="'/admin/pakets/' + editingPaket.id" class="mt-4 space-y-4">
                     @csrf
                     @method('PUT')
                     <div>
-                        <label class="block text-xs font-bold uppercase text-[#06233B]">Nama Paket</label>
+                        <label for="edit_nama_paket" class="block text-xs font-bold uppercase text-[#06233B]">Nama Paket</label>
                         <input
+                            id="edit_nama_paket"
                             type="text"
                             name="nama_paket"
                             x-model="editingPaket.nama_paket"
                             required
-                            class="mt-1 block min-h-[44px] w-full rounded-lg border-[1.5px] border-[#5B82A6] bg-white px-3 py-2 text-sm font-medium text-[#06233B]">
+                            class="mt-1 block min-h-[44px] w-full rounded-lg border-[1.5px] border-[#4A7396] bg-white px-3 py-2 text-sm font-semibold text-[#06233B]">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold uppercase text-[#06233B]">Simple Queue Max-Limit</label>
+                        <label for="edit_queue_max_limit" class="block text-xs font-bold uppercase text-[#06233B]">Simple Queue Max-Limit</label>
                         <input
+                            id="edit_queue_max_limit"
                             type="text"
                             name="queue_max_limit"
                             x-model="editingPaket.queue_max_limit"
                             required
-                            class="mt-1 block min-h-[44px] w-full rounded-lg border-[1.5px] border-[#5B82A6] bg-white px-3 py-2 font-mono text-sm font-bold text-[#06233B]">
+                            class="mt-1 block min-h-[44px] w-full rounded-lg border-[1.5px] border-[#4A7396] bg-white px-3 py-2 font-mono text-sm font-bold text-[#06233B]">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold uppercase text-[#06233B]">PPPoE Profile</label>
+                        <label for="edit_pppoe_profile" class="block text-xs font-bold uppercase text-[#06233B]">PPPoE Profile</label>
                         <input
+                            id="edit_pppoe_profile"
                             type="text"
                             name="pppoe_profile"
                             x-model="editingPaket.pppoe_profile"
                             required
-                            class="mt-1 block min-h-[44px] w-full rounded-lg border-[1.5px] border-[#5B82A6] bg-white px-3 py-2 font-mono text-sm font-bold text-[#06233B]">
+                            class="mt-1 block min-h-[44px] w-full rounded-lg border-[1.5px] border-[#4A7396] bg-white px-3 py-2 font-mono text-sm font-bold text-[#06233B]">
                     </div>
                     <div class="flex justify-end gap-2 pt-2">
                         <button
                             type="button"
                             @click="editingPaket = null"
-                            class="min-h-[44px] rounded-lg border-[1.5px] border-[#5B82A6] bg-[#EDF5FC] px-4 py-2 text-xs font-bold text-[#06233B]">
+                            class="min-h-[44px] rounded-lg border-[1.5px] border-[#4A7396] bg-[#EDF5FC] px-4 py-2 text-xs font-bold text-[#06233B]">
                             Batal
                         </button>
                         <button

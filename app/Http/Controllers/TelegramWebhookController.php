@@ -7,15 +7,32 @@ namespace App\Http\Controllers;
 use App\Services\TelegramService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class TelegramWebhookController extends Controller
 {
     /**
      * Handle incoming Telegram Bot webhook updates.
-     * Replies with the group's chat_id and message_thread_id whenever `/cekid` is sent.
+     * Verifies X-Telegram-Bot-Api-Secret-Token and replies with chat_id and message_thread_id on `/cekid`.
      */
     public function handle(Request $request, TelegramService $telegramService): JsonResponse
     {
+        $expectedSecret = trim((string) config('services.telegram.webhook_secret', ''));
+
+        if ($expectedSecret === '' && app()->environment('production')) {
+            Log::error('TelegramWebhookController: TELEGRAM_WEBHOOK_SECRET belum dikonfigurasi di environment production.');
+
+            return response()->json(['ok' => false, 'error' => 'Webhook secret not configured.'], 403);
+        }
+
+        if ($expectedSecret !== '') {
+            $providedSecret = (string) $request->header('X-Telegram-Bot-Api-Secret-Token', '');
+
+            if ($providedSecret === '' || ! hash_equals($expectedSecret, $providedSecret)) {
+                return response()->json(['ok' => false, 'error' => 'Unauthorized webhook request.'], 403);
+            }
+        }
+
         $message = $request->input('message') ?? $request->input('edited_message');
 
         if (! is_array($message)) {
@@ -59,7 +76,6 @@ class TelegramWebhookController extends Controller
             'ok' => true,
             'chat_id' => (string) $chatId,
             'message_thread_id' => $threadId,
-            'reply_text' => $replyText,
         ]);
     }
 }

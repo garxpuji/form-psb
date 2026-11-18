@@ -56,6 +56,15 @@ class UserController extends Controller
     {
         $validated = $request->validated();
 
+        if ($request->user()?->id === $user->id) {
+            if (! $validated['is_active'] || $validated['role'] !== 'admin') {
+                return back()->with(
+                    'error',
+                    'Anda tidak dapat menonaktifkan atau menurunkan role akun Administrator Anda sendiri.'
+                );
+            }
+        }
+
         if (empty($validated['password'])) {
             unset($validated['password']);
         }

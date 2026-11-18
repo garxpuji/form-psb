@@ -13,6 +13,7 @@ use App\Services\TelegramService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
@@ -98,38 +99,66 @@ class DashboardController extends Controller
         MikrotikProvisionerService $provisioner,
         TelegramService $telegramService
     ): RedirectResponse {
-        $order->load(['odp', 'paket', 'sales.ipRouter', 'user.telegramGroup']);
+        if ($order->status_sync === 'success') {
+            return back()->with(
+                'error',
+                "Order PSB {$order->nama_pelanggan} sudah berstatus SUCCESS ({$order->hasil_poe_ip}) sehingga tidak di-retry ulang."
+            );
+        }
 
-        if ($order->odp !== null) {
-            $order->tipe_koneksi = $order->odp->status_upgrade === 'upgrade' ? 'pppoe' : 'static_ip';
+        $lock = Cache::lock("psb-retry-order-{$order->id}", 30);
+
+        if (! $lock->get()) {
+            return back()->with(
+                'error',
+                "Proses Retry untuk {$order->nama_pelanggan} sedang berjalan. Mohon tunggu beberapa detik."
+            );
         }
 
         try {
-            $hasilPoeIp = $provisioner->provisionOrder($order);
+            $order->refresh();
+            if ($order->status_sync === 'success') {
+                return back()->with(
+                    'success',
+                    "Order PSB {$order->nama_pelanggan} telah berhasil dikonfigurasi ({$order->hasil_poe_ip})."
+                );
+            }
 
-            $order->update([
-                'tipe_koneksi' => $order->tipe_koneksi,
-                'hasil_poe_ip' => $hasilPoeIp,
-                'status_sync' => 'success',
-                'error_log' => null,
-            ]);
+            $order->load(['odp', 'paket', 'sales.ipRouter', 'user.telegramGroup']);
 
-            $telegramService->sendPsbReport($order->fresh(), $order->user);
+            if ($order->odp !== null) {
+                $order->tipe_koneksi = $order->odp->status_upgrade === 'upgrade' ? 'pppoe' : 'static_ip';
+            }
 
-            return back()->with(
-                'success',
-                "Retry Provisioning berhasil untuk {$order->nama_pelanggan}. Hasil POE/IP: {$hasilPoeIp}"
-            );
-        } catch (\Throwable $e) {
-            $order->update([
-                'status_sync' => 'failed',
-                'error_log' => $e->getMessage(),
-            ]);
+            try {
+                $hasilPoeIp = $provisioner->provisionOrder($order);
 
-            return back()->with(
-                'error',
-                "Retry Provisioning gagal untuk {$order->nama_pelanggan}: {$e->getMessage()}"
-            );
+                $order->update([
+                    'tipe_koneksi' => $order->tipe_koneksi,
+                    'hasil_poe_ip' => $hasilPoeIp,
+                    'status_sync' => 'success',
+                    'error_log' => null,
+                ]);
+
+                $telegramService->sendPsbReport($order->fresh(), $order->user);
+
+                return back()->with(
+                    'success',
+                    "Retry Provisioning berhasil untuk {$order->nama_pelanggan}. Hasil POE/IP: {$hasilPoeIp}"
+                );
+            } catch (\Throwable $e) {
+                $order->update([
+                    'status_sync' => 'failed',
+                    'error_log' => $e->getMessage(),
+                ]);
+
+                return back()->with(
+                    'error',
+                    "Retry Provisioning gagal untuk {$order->nama_pelanggan}: {$e->getMessage()}"
+                );
+            }
+        } finally {
+            $lock->release();
         }
     }
 
@@ -151,13 +180,13 @@ class DashboardController extends Controller
         if ($exitCode === 0) {
             return back()->with(
                 'success',
-                'Sinkronisasi slot MikroTik selesai dijalankan. ' . ($output !== '' ? "({$output})" : '')
+                'Sinkronisasi slot MikroTik selesai dijalankan. '.($output !== '' ? "({$output})" : '')
             );
         }
 
         return back()->with(
             'error',
-            'Sinkronisasi slot selesai dengan peringatan/error: ' . ($output !== '' ? $output : 'Cek koneksi RouterOS API.')
+            'Sinkronisasi slot selesai dengan peringatan/error: '.($output !== '' ? $output : 'Cek koneksi RouterOS API.')
         );
     }
 }

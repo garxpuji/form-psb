@@ -215,7 +215,7 @@ class SecurityAndUxHardeningTest extends TestCase
         $admin = User::where('username', 'admin')->firstOrFail();
         $odp = Odp::where('nama_odp', 'U15 B')->firstOrFail();
         $paket = Paket::where('nama_paket', '10mbps')->firstOrFail();
-        $sale = Sale::where('kode_sales_ip', 'PAY')->firstOrFail();
+        $sale = Sale::where('kode_sales_ip', 'PN')->firstOrFail();
 
         $order = PsbOrder::create([
             'user_id' => $admin->id,

@@ -253,7 +253,7 @@ $salesMap = $salesList->mapWithKeys(fn ($s) => [
                                     <option value="">-- Tanpa Sales (Langsung / Kantor) --</option>
                                     @foreach ($salesList as $s)
                                     <option value="{{ $s->id }}">
-                                        {{ $s->kode_sales_ip }} - {{ $s->nama_sales }} (PPPoE: {{ $s->kode_sales_pppoe }})
+                                        {{ $s->kode_sales_pppoe }} - {{ $s->nama_sales }} (Queue: {{ $s->kode_sales_ip }})
                                     </option>
                                     @endforeach
                                 </select>
@@ -1121,11 +1121,42 @@ $salesMap = $salesList->mapWithKeys(fn ($s) => [
                 const odp = this.currentOdp();
                 const paketName = this.paketMap[this.selectedPaketId] || '-';
                 const salesObj = this.salesMap[this.selectedSalesId] || null;
-                const poePreview = odp ?
-                    (odp.status_upgrade === 'upgrade' ?
-                        `${odp.kode_odp}_01_${salesObj ? salesObj.kode_pppoe : '00'}_XXXXX_${(this.namaPelanggan || 'PELANGGAN').toUpperCase().replace(/[^A-Z0-9 ]/g, '').trim().replace(/\s+/g, '_')}` :
-                        '[Auto-Claim IP dari ' + (salesObj ? salesObj.router : 'Router Distribusi') + ']') :
-                    '[Menunggu Pilihan ODP]';
+
+                let poePreview = '[Menunggu Pilihan ODP]';
+                if (odp) {
+                    const custCleanPppoe = (this.namaPelanggan || 'PELANGGAN').toUpperCase().replace(/[^A-Z0-9 ]/g, '').trim().replace(/\s+/g, '_') || 'PELANGGAN';
+                    const custCleanQueue = (this.namaPelanggan || 'PELANGGAN').toUpperCase().replace(/[^A-Z0-9 ]/g, '').trim().replace(/\s+/g, ' ') || 'PELANGGAN';
+
+                    if (odp.status_upgrade === 'upgrade') {
+                        const salesPppoe = salesObj ? salesObj.kode_pppoe : '01';
+                        poePreview = `${odp.kode_odp}_01_${salesPppoe}_XXXXX_${custCleanPppoe}`;
+                    } else {
+                        let prefix = 'LITE';
+                        let targetRouter = 'RO_POS1';
+
+                        const isGayuh = !salesObj || salesObj.kode_pppoe === '01';
+                        if (isGayuh) {
+                            const speedMatch = paketName.match(/(\d+)/);
+                            const speed = speedMatch ? parseInt(speedMatch[1], 10) : 10;
+                            if (speed <= 20) {
+                                prefix = 'LITE';
+                                targetRouter = 'RO_POS1';
+                            } else {
+                                prefix = 'GAMER';
+                                targetRouter = 'RO_GAYUH';
+                            }
+                        } else if (salesObj.kode_pppoe === '09') {
+                            targetRouter = 'RO_POS1';
+                            const odpUpper = (odp.nama_odp || '').toUpperCase();
+                            prefix = odpUpper.startsWith('GSMA') ? 'SKM' : 'SEWAN';
+                        } else {
+                            targetRouter = salesObj.router || 'RO_POS1';
+                            prefix = (salesObj.kode_ip || 'CLIENT').toUpperCase();
+                        }
+
+                        poePreview = `[Auto-Claim IP: ${prefix}-XXXX-${custCleanQueue} @ ${targetRouter}]`;
+                    }
+                }
 
                 const lines = [];
                 if (this.isNonTeam) {

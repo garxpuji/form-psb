@@ -5,7 +5,7 @@
     <div class="rounded-2xl border-[1.5px] border-[#4A7396] bg-white p-4 shadow-sm sm:p-5">
         <h1 class="text-[clamp(1.125rem,2vw,1.35rem)] font-extrabold text-[#06233B]">Master Data Sales & Pemetaan Router</h1>
         <p class="mt-0.5 text-xs font-medium text-[#2C5270]">
-            Hubungkan setiap kode sales (<code class="rounded bg-[#E0F2FE] px-1.5 py-0.5 font-mono font-bold text-[#075985]">PAY, KD, PN, JN, JB</code>) dengan kode 2 digit PPPoE dan router distribusi Static IP yang sesuai.
+            Hubungkan setiap kode sales (01–17) dengan kode PPPoE 2 digit, kode simple queue, dan alokasi router distribusi (<code class="rounded bg-[#E0F2FE] px-1.5 py-0.5 font-mono font-bold text-[#075985]">RO_POS1, RO_FK, RO_GAYUH</code>).
         </p>
     </div>
 
@@ -75,8 +75,8 @@
                 <table class="min-w-full divide-y divide-[#7FA6C9] text-left text-sm">
                     <thead class="bg-[#072A47] text-xs font-bold uppercase tracking-wider text-white">
                         <tr>
-                            <th scope="col" class="px-4 py-3.5">Kode IP</th>
                             <th scope="col" class="px-4 py-3.5">Kode PPPoE</th>
+                            <th scope="col" class="px-4 py-3.5">Kode Simple Queue</th>
                             <th scope="col" class="px-4 py-3.5">Nama Sales</th>
                             <th scope="col" class="px-4 py-3.5">Router Distribusi</th>
                             <th scope="col" class="px-4 py-3.5">Total PSB</th>
@@ -86,12 +86,34 @@
                     <tbody class="divide-y divide-[#7FA6C9] bg-white">
                         @forelse ($salesList as $sale)
                         <tr class="hover:bg-[#EDF5FC]/70">
-                            <td class="px-4 py-3 font-mono font-extrabold text-[#005F99]">{{ $sale->kode_sales_ip }}</td>
-                            <td class="px-4 py-3 font-mono font-bold text-[#06233B]">{{ $sale->kode_sales_pppoe }}</td>
+                            <td class="px-4 py-3 font-mono font-extrabold text-[#005F99]">{{ $sale->kode_sales_pppoe }}</td>
+                            <td class="px-4 py-3 font-mono text-xs font-bold">
+                                @if ($sale->kode_sales_pppoe === '01')
+                                    <div class="flex flex-wrap gap-1">
+                                        <span class="rounded bg-[#FEF3C7] px-1.5 py-0.5 text-[11px] font-extrabold text-[#92400E]">LITE (≤20M)</span>
+                                        <span class="rounded bg-[#FEE2E2] px-1.5 py-0.5 text-[11px] font-extrabold text-[#991B1B]">GAMER (&gt;20M)</span>
+                                    </div>
+                                @elseif ($sale->kode_sales_pppoe === '09')
+                                    <div class="flex flex-wrap gap-1">
+                                        <span class="rounded bg-[#D1FAE5] px-1.5 py-0.5 text-[11px] font-extrabold text-[#065F46]">SEWAN (GSA/B)</span>
+                                        <span class="rounded bg-[#D1FAE5] px-1.5 py-0.5 text-[11px] font-extrabold text-[#065F46]">SKM (GSMA)</span>
+                                    </div>
+                                @else
+                                    <span class="rounded bg-[#E0F2FE] px-2 py-0.5 font-mono text-xs font-extrabold text-[#005F99]">{{ $sale->kode_sales_ip }}</span>
+                                @endif
+                            </td>
                             <td class="px-4 py-3 font-bold text-[#06233B]">{{ $sale->nama_sales }}</td>
                             <td class="px-4 py-3 text-xs font-semibold text-[#06233B]">
-                                {{ $sale->ipRouter?->nama_router ?? '-' }}
-                                <span class="font-mono text-[#2C5270]">({{ $sale->ipRouter?->ip_host }})</span>
+                                @if ($sale->kode_sales_pppoe === '01')
+                                    <span class="font-bold text-[#075985]">RO_POS1 (≤20M) / RO_GAYUH (&gt;20M)</span>
+                                    <div class="text-[11px] text-[#2C5270]">Routing otomatis per paket</div>
+                                @elseif ($sale->kode_sales_pppoe === '09')
+                                    <span class="font-bold text-[#065F46]">RO_POS1</span>
+                                    <div class="text-[11px] text-[#2C5270]">Prefix otomatis per ODP</div>
+                                @else
+                                    <span class="font-bold">{{ $sale->ipRouter?->nama_router ?? '-' }}</span>
+                                    <span class="font-mono text-[#2C5270]">({{ $sale->ipRouter?->ip_host }})</span>
+                                @endif
                             </td>
                             <td class="px-4 py-3 font-mono text-xs font-bold text-[#06233B]">{{ $sale->psb_orders_count }}</td>
                             <td class="whitespace-nowrap px-4 py-3 text-right text-xs">

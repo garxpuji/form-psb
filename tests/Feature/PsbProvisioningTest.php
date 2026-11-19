@@ -139,7 +139,7 @@ class PsbProvisioningTest extends TestCase
         $user = User::where('username', 'andri')->firstOrFail(); // Assigned to TEAM 1
         $odp = Odp::where('nama_odp', 'U15 B')->firstOrFail();   // kode_odp=12, upgrade, last_seq=767
         $paket = Paket::where('nama_paket', '10mbps')->firstOrFail();
-        $sale = Sale::where('kode_sales_ip', 'KD')->firstOrFail(); // kode_sales_pppoe=02
+        $sale = Sale::where('kode_sales_ip', 'KD')->firstOrFail(); // kode_sales_pppoe=17 (SUMARDI)
 
         $fakeClient = Mockery::mock(ClientInterface::class);
 
@@ -153,12 +153,12 @@ class PsbProvisioningTest extends TestCase
                 if ($endpoint === '/ppp/secret/print') {
                     return [
                         ['name' => '12_01_01_00765_BUDI'],
-                        ['name' => '12_01_02_00767_LAMA'],
+                        ['name' => '12_01_17_00767_LAMA'],
                     ];
                 }
                 if ($endpoint === '/ppp/secret/add') {
                     $attrs = $query->getAttributes();
-                    $this->assertContains('=name=12_01_02_00768_ASTONI', $attrs);
+                    $this->assertContains('=name=12_01_17_00768_ASTONI', $attrs);
                     $this->assertContains('=password=psb12345', $attrs);
                     $this->assertContains('=service=pppoe', $attrs);
                     $this->assertContains('=profile=PAKET-10M', $attrs);
@@ -193,7 +193,7 @@ class PsbProvisioningTest extends TestCase
         $order = PsbOrder::latest('id')->firstOrFail();
         $this->assertSame('success', $order->status_sync);
         $this->assertSame('pppoe', $order->tipe_koneksi);
-        $this->assertSame('12_01_02_00768_ASTONI', $order->hasil_poe_ip);
+        $this->assertSame('12_01_17_00768_ASTONI', $order->hasil_poe_ip);
         $this->assertSame('F8:14:FE:87:6D:0A', $order->mac_address);
         $this->assertSame('andri&nopal', $order->nama_teknisi);
         $this->assertSame('https://www.google.com/maps?q=-6.200000,106.816666', $order->shareloc);
@@ -209,7 +209,7 @@ class PsbProvisioningTest extends TestCase
         Http::assertSent(function ($request) use ($team1Group): bool {
             return str_contains($request->url(), '/sendMessage')
                 && $request['chat_id'] === $team1Group->chat_id
-                && str_contains($request['text'], 'POE/IP       : 12_01_02_00768_ASTONI')
+                && str_contains($request['text'], 'POE/IP       : 12_01_17_00768_ASTONI')
                 && str_contains($request['text'], 'SHARELOC     : https://www.google.com/maps?q=-6.200000,106.816666')
                 && ! str_contains($request['text'], '[NON-TIM PSB]');
         });
@@ -333,7 +333,7 @@ class PsbProvisioningTest extends TestCase
         $user = User::where('username', 'andri')->firstOrFail();
         $odp = Odp::where('nama_odp', 'U15 B')->firstOrFail();
         $paket = Paket::where('nama_paket', '10mbps')->firstOrFail();
-        $sale = Sale::where('kode_sales_ip', 'PAY')->firstOrFail();
+        $sale = Sale::where('kode_sales_ip', 'PN')->firstOrFail();
 
         $mockProvisioner = Mockery::mock(MikrotikProvisionerService::class)->makePartial();
         $mockProvisioner->shouldReceive('provisionOrder')
@@ -404,7 +404,7 @@ class PsbProvisioningTest extends TestCase
 
     public function test_sync_mikrotik_slots_command_executes_3_bulk_queries_and_evaluates_rules(): void
     {
-        $router = Router::where('nama_router', 'DIST-MIKROTIK-PAY')->firstOrFail();
+        $router = Router::where('nama_router', 'RO_POS1')->firstOrFail();
         RouterIpSlot::where('router_id', $router->id)->delete();
 
         $fakeClient = Mockery::mock(ClientInterface::class);
@@ -529,7 +529,7 @@ class PsbProvisioningTest extends TestCase
         $admin = User::where('username', 'admin')->firstOrFail();
         $odp = Odp::where('nama_odp', 'U15 B')->firstOrFail();
         $paket = Paket::where('nama_paket', '10mbps')->firstOrFail();
-        $sale = Sale::where('kode_sales_ip', 'PAY')->firstOrFail();
+        $sale = Sale::where('kode_sales_ip', 'PN')->firstOrFail();
 
         // Create 1 order WITH sales (PAY) and 1 order WITHOUT sales (Tanpa Sales)
         PsbOrder::create([
@@ -554,7 +554,7 @@ class PsbProvisioningTest extends TestCase
             'foto_ktp_pelanggan' => 'psb-photos/ktp.jpg',
             'foto_rumah_pelanggan' => 'psb-photos/rumah.jpg',
             'tipe_koneksi' => 'pppoe',
-            'hasil_poe_ip' => '12_01_01_00768_PELANGGAN_SALES',
+            'hasil_poe_ip' => '12_01_08_00768_PELANGGAN_SALES',
             'status_sync' => 'success',
         ]);
 
@@ -622,5 +622,178 @@ class PsbProvisioningTest extends TestCase
             ->get(route('admin.riwayat.export', ['filter_sales' => 'tanpa_sales']))
             ->assertOk()
             ->assertHeader('Content-Type', 'text/csv; charset=UTF-8');
+    }
+
+    public function test_gayuh_static_ip_routes_to_ro_pos1_with_lite_for_20m_and_below(): void
+    {
+        $provisioner = new MikrotikProvisionerService;
+        $admin = User::where('username', 'admin')->firstOrFail();
+        $odp = Odp::where('nama_odp', 'K04 C')->firstOrFail(); // belum_upgrade
+        $paket10 = Paket::where('nama_paket', '10mbps')->firstOrFail();
+        $paket20 = Paket::where('nama_paket', '20mbps')->firstOrFail();
+        $gayuhSale = Sale::where('kode_sales_pppoe', '01')->firstOrFail();
+
+        // 1. Tanpa sales (sales_id = null) + 10mbps
+        $order1 = new PsbOrder([
+            'user_id' => $admin->id,
+            'odp_id' => $odp->id,
+            'paket_id' => $paket10->id,
+            'sales_id' => null,
+            'nama_pelanggan' => 'Gayuh User 1',
+        ]);
+        $order1->setRelation('odp', $odp);
+        $order1->setRelation('paket', $paket10);
+        $order1->setRelation('sales', null);
+
+        $routing1 = $provisioner->resolveRoutingContext($order1);
+        $this->assertSame('RO_POS1', $routing1['router']->nama_router);
+        $this->assertSame('LITE', $routing1['queue_prefix']);
+
+        // 2. Dengan record sales Gayuh (kode_sales_pppoe = 01) + 20mbps
+        $order2 = new PsbOrder([
+            'user_id' => $admin->id,
+            'odp_id' => $odp->id,
+            'paket_id' => $paket20->id,
+            'sales_id' => $gayuhSale->id,
+            'nama_pelanggan' => 'Gayuh User 2',
+        ]);
+        $order2->setRelation('odp', $odp);
+        $order2->setRelation('paket', $paket20);
+        $order2->setRelation('sales', $gayuhSale);
+
+        $routing2 = $provisioner->resolveRoutingContext($order2);
+        $this->assertSame('RO_POS1', $routing2['router']->nama_router);
+        $this->assertSame('LITE', $routing2['queue_prefix']);
+    }
+
+    public function test_gayuh_static_ip_routes_to_ro_gayuh_with_gamer_for_above_20m(): void
+    {
+        $provisioner = new MikrotikProvisionerService;
+        $admin = User::where('username', 'admin')->firstOrFail();
+        $odp = Odp::where('nama_odp', 'K04 C')->firstOrFail(); // belum_upgrade
+        $paket30 = Paket::where('nama_paket', '30mbps')->firstOrFail();
+        $paket50 = Paket::where('nama_paket', '50mbps')->firstOrFail();
+        $gayuhSale = Sale::where('kode_sales_pppoe', '01')->firstOrFail();
+
+        // Tanpa sales + 30mbps
+        $order1 = new PsbOrder([
+            'user_id' => $admin->id,
+            'odp_id' => $odp->id,
+            'paket_id' => $paket30->id,
+            'sales_id' => null,
+            'nama_pelanggan' => 'Gamer User 30M',
+        ]);
+        $order1->setRelation('odp', $odp);
+        $order1->setRelation('paket', $paket30);
+        $order1->setRelation('sales', null);
+
+        $routing1 = $provisioner->resolveRoutingContext($order1);
+        $this->assertSame('RO_GAYUH', $routing1['router']->nama_router);
+        $this->assertSame('GAMER', $routing1['queue_prefix']);
+
+        // Record Gayuh + 50mbps
+        $order2 = new PsbOrder([
+            'user_id' => $admin->id,
+            'odp_id' => $odp->id,
+            'paket_id' => $paket50->id,
+            'sales_id' => $gayuhSale->id,
+            'nama_pelanggan' => 'Gamer User 50M',
+        ]);
+        $order2->setRelation('odp', $odp);
+        $order2->setRelation('paket', $paket50);
+        $order2->setRelation('sales', $gayuhSale);
+
+        $routing2 = $provisioner->resolveRoutingContext($order2);
+        $this->assertSame('RO_GAYUH', $routing2['router']->nama_router);
+        $this->assertSame('GAMER', $routing2['queue_prefix']);
+    }
+
+    public function test_habudin_static_ip_routes_to_sewan_and_skm_based_on_odp(): void
+    {
+        $provisioner = new MikrotikProvisionerService;
+        $admin = User::where('username', 'admin')->firstOrFail();
+        $paket = Paket::where('nama_paket', '10mbps')->firstOrFail();
+        $habudin = Sale::where('kode_sales_pppoe', '09')->firstOrFail();
+
+        $odpGsa = Odp::where('nama_odp', 'GSA-01')->firstOrFail();
+        $odpGsb = Odp::where('nama_odp', 'GSB-01')->firstOrFail();
+        $odpGsma = Odp::where('nama_odp', 'GSMA-01')->firstOrFail();
+
+        // Habudin + GSA -> SEWAN on RO_POS1
+        $orderGsa = new PsbOrder(['user_id' => $admin->id, 'odp_id' => $odpGsa->id, 'paket_id' => $paket->id, 'sales_id' => $habudin->id]);
+        $orderGsa->setRelation('odp', $odpGsa);
+        $orderGsa->setRelation('paket', $paket);
+        $orderGsa->setRelation('sales', $habudin);
+
+        $resGsa = $provisioner->resolveRoutingContext($orderGsa);
+        $this->assertSame('RO_POS1', $resGsa['router']->nama_router);
+        $this->assertSame('SEWAN', $resGsa['queue_prefix']);
+
+        // Habudin + GSB -> SEWAN on RO_POS1
+        $orderGsb = new PsbOrder(['user_id' => $admin->id, 'odp_id' => $odpGsb->id, 'paket_id' => $paket->id, 'sales_id' => $habudin->id]);
+        $orderGsb->setRelation('odp', $odpGsb);
+        $orderGsb->setRelation('paket', $paket);
+        $orderGsb->setRelation('sales', $habudin);
+
+        $resGsb = $provisioner->resolveRoutingContext($orderGsb);
+        $this->assertSame('RO_POS1', $resGsb['router']->nama_router);
+        $this->assertSame('SEWAN', $resGsb['queue_prefix']);
+
+        // Habudin + GSMA -> SKM on RO_POS1
+        $orderGsma = new PsbOrder(['user_id' => $admin->id, 'odp_id' => $odpGsma->id, 'paket_id' => $paket->id, 'sales_id' => $habudin->id]);
+        $orderGsma->setRelation('odp', $odpGsma);
+        $orderGsma->setRelation('paket', $paket);
+        $orderGsma->setRelation('sales', $habudin);
+
+        $resGsma = $provisioner->resolveRoutingContext($orderGsma);
+        $this->assertSame('RO_POS1', $resGsma['router']->nama_router);
+        $this->assertSame('SKM', $resGsma['queue_prefix']);
+    }
+
+    public function test_ro_fk_routes_pay_pgb_and_other_fk_sales(): void
+    {
+        $provisioner = new MikrotikProvisionerService;
+        $admin = User::where('username', 'admin')->firstOrFail();
+        $odp = Odp::where('nama_odp', 'K04 C')->firstOrFail();
+        $paket = Paket::where('nama_paket', '10mbps')->firstOrFail();
+
+        $pay = Sale::where('kode_sales_pppoe', '08')->firstOrFail();
+        $pgb = Sale::where('kode_sales_pppoe', '14')->firstOrFail();
+        $miftah = Sale::where('kode_sales_pppoe', '02')->firstOrFail();
+
+        // PAY -> PN on RO_FK
+        $orderPay = new PsbOrder(['user_id' => $admin->id, 'odp_id' => $odp->id, 'paket_id' => $paket->id, 'sales_id' => $pay->id]);
+        $orderPay->setRelation('odp', $odp);
+        $orderPay->setRelation('paket', $paket);
+        $orderPay->setRelation('sales', $pay);
+        $resPay = $provisioner->resolveRoutingContext($orderPay);
+        $this->assertSame('RO_FK', $resPay['router']->nama_router);
+        $this->assertSame('PN', $resPay['queue_prefix']);
+
+        // PGB -> PGB on RO_FK
+        $orderPgb = new PsbOrder(['user_id' => $admin->id, 'odp_id' => $odp->id, 'paket_id' => $paket->id, 'sales_id' => $pgb->id]);
+        $orderPgb->setRelation('odp', $odp);
+        $orderPgb->setRelation('paket', $paket);
+        $orderPgb->setRelation('sales', $pgb);
+        $resPgb = $provisioner->resolveRoutingContext($orderPgb);
+        $this->assertSame('RO_FK', $resPgb['router']->nama_router);
+        $this->assertSame('PGB', $resPgb['queue_prefix']);
+
+        // MIFTAH -> JB on RO_FK
+        $orderMiftah = new PsbOrder(['user_id' => $admin->id, 'odp_id' => $odp->id, 'paket_id' => $paket->id, 'sales_id' => $miftah->id]);
+        $orderMiftah->setRelation('odp', $odp);
+        $orderMiftah->setRelation('paket', $paket);
+        $orderMiftah->setRelation('sales', $miftah);
+        $resMiftah = $provisioner->resolveRoutingContext($orderMiftah);
+        $this->assertSame('RO_FK', $resMiftah['router']->nama_router);
+        $this->assertSame('JB', $resMiftah['queue_prefix']);
+    }
+
+    public function test_dynamic_queue_clean_name_and_octet_formatting(): void
+    {
+        $provisioner = new MikrotikProvisionerService;
+        $this->assertSame('ASTONI NURHAID', $provisioner->cleanCustomerNameForQueue('Astoni / Nurhaid'));
+        $this->assertSame('PELANGGAN', $provisioner->cleanCustomerNameForQueue('---'));
+        $this->assertSame('ASTONI_NURHAID', $provisioner->cleanCustomerNameForPppoe('Astoni / Nurhaid'));
     }
 }

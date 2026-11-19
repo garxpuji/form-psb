@@ -150,7 +150,7 @@ class MikrotikProvisionerService
             $paddedSeq = str_pad((string) $nextSeq, 5, '0', STR_PAD_LEFT);
 
             $cleanCustomerName = $this->cleanCustomerNameForPppoe($order->nama_pelanggan);
-            $kodeSalesPppoe = $order->sales?->kode_sales_pppoe ?? '00';
+            $kodeSalesPppoe = $order->sales?->kode_sales_pppoe ?? '01';
 
             $pppoeUsername = "{$lockedOdp->kode_odp}_01_{$kodeSalesPppoe}_{$paddedSeq}_{$cleanCustomerName}";
             $defaultPassword = (string) config('services.mikrotik.pppoe_default_password', '123456');
@@ -173,22 +173,84 @@ class MikrotikProvisionerService
         });
     }
 
+    /**
+     * Resolve target router and simple queue prefix dynamically based on order sales, package speed, and ODP.
+     *
+     * @return array{router: Router, queue_prefix: string}
+     */
+    public function resolveRoutingContext(PsbOrder $order): array
+    {
+        $order->loadMissing(['odp', 'paket', 'sales.ipRouter']);
+
+        $sales = $order->sales;
+        $isGayuh = $sales === null || $sales->kode_sales_pppoe === '01';
+
+        if ($isGayuh) {
+            $speed = 10;
+            if ($order->paket !== null) {
+                if (preg_match('/(\d+)\s*(?:mbps|m)/i', $order->paket->nama_paket, $m)) {
+                    $speed = (int) $m[1];
+                } elseif (preg_match('/(\d+)\s*M/i', (string) $order->paket->queue_max_limit, $m)) {
+                    $speed = (int) $m[1];
+                }
+            }
+
+            if ($speed <= 20) {
+                $router = Router::where('nama_router', 'RO_POS1')->first()
+                    ?? Router::where('is_pppoe_server', false)->orderBy('id')->firstOrFail();
+
+                return [
+                    'router' => $router,
+                    'queue_prefix' => 'LITE',
+                ];
+            }
+
+            $router = Router::where('nama_router', 'RO_GAYUH')->first()
+                ?? Router::where('is_pppoe_server', false)->orderBy('id')->firstOrFail();
+
+            return [
+                'router' => $router,
+                'queue_prefix' => 'GAMER',
+            ];
+        }
+
+        // HABUDIN (Kode PPPoE 09)
+        if ($sales->kode_sales_pppoe === '09') {
+            $router = Router::where('nama_router', 'RO_POS1')->first()
+                ?? $sales->ipRouter
+                ?? Router::where('is_pppoe_server', false)->orderBy('id')->firstOrFail();
+
+            $odpName = strtoupper(trim((string) ($order->odp?->nama_odp ?? '')));
+            if (str_starts_with($odpName, 'GSMA')) {
+                return [
+                    'router' => $router,
+                    'queue_prefix' => 'SKM',
+                ];
+            }
+
+            return [
+                'router' => $router,
+                'queue_prefix' => 'SEWAN',
+            ];
+        }
+
+        // Standard Sales mapping
+        $router = $sales->ipRouter
+            ?? Router::where('is_pppoe_server', false)->orderBy('id')->firstOrFail();
+
+        $salesPrefix = strtoupper(trim((string) $sales->kode_sales_ip));
+
+        return [
+            'router' => $router,
+            'queue_prefix' => $salesPrefix !== '' ? $salesPrefix : 'CLIENT',
+        ];
+    }
+
     protected function provisionStaticIp(PsbOrder $order): string
     {
-        $sales = $order->sales;
-        $router = $sales?->ipRouter;
-
-        if ($router === null) {
-            $router = Router::where('is_pppoe_server', false)
-                ->whereHas('ipSlots', fn ($q) => $q->where('status', 'available'))
-                ->orderBy('id')
-                ->first()
-                ?? Router::where('is_pppoe_server', false)->orderBy('id')->first();
-        }
-
-        if ($router === null) {
-            throw new RuntimeException('Tidak ada router distribusi Static IP yang tersedia.');
-        }
+        $routing = $this->resolveRoutingContext($order);
+        $router = $routing['router'];
+        $salesPrefix = $routing['queue_prefix'];
 
         if (empty($router->lan_interface)) {
             throw new RuntimeException("Interface LAN (lan_interface) belum diatur pada router {$router->nama_router}.");
@@ -197,7 +259,7 @@ class MikrotikProvisionerService
         $formattedMac = self::normalizeMacAddress($order->mac_address);
         $client = $this->createClient($router);
 
-        return DB::transaction(function () use ($order, $sales, $router, $formattedMac, $client): string {
+        return DB::transaction(function () use ($order, $router, $salesPrefix, $formattedMac, $client): string {
             while (true) {
                 $slot = RouterIpSlot::where('router_id', $router->id)
                     ->where('status', 'available')
@@ -281,8 +343,6 @@ class MikrotikProvisionerService
                 $octet34 = $octets[2].$octets[3];
 
                 $cleanName = $this->cleanCustomerNameForQueue($order->nama_pelanggan);
-
-                $salesPrefix = strtoupper($sales?->kode_sales_ip ?? 'NON');
                 $queueName = "{$salesPrefix}-{$octet34}-{$cleanName}";
 
                 $queueId = (string) $liveQueue['.id'];

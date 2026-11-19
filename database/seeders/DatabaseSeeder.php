@@ -72,7 +72,7 @@ class DatabaseSeeder extends Seeder
         }
 
         Router::updateOrCreate(
-            ['nama_router' => 'CCR-PPPOE-PUSAT'],
+            ['nama_router' => 'RO_ZTE'],
             [
                 'ip_host' => '10.10.0.1',
                 'api_port' => 8728,
@@ -84,12 +84,9 @@ class DatabaseSeeder extends Seeder
         );
 
         $distRoutersData = [
-            'PAY' => ['nama_router' => 'DIST-MIKROTIK-PAY', 'ip_host' => '10.10.1.1', 'subnet_oct3' => 94],
-            'KD'  => ['nama_router' => 'DIST-MIKROTIK-KD',  'ip_host' => '10.10.1.2', 'subnet_oct3' => 103],
-            'PN'  => ['nama_router' => 'DIST-MIKROTIK-PN',  'ip_host' => '10.10.1.3', 'subnet_oct3' => 102],
-            'JN'  => ['nama_router' => 'DIST-MIKROTIK-JN',  'ip_host' => '10.10.1.4', 'subnet_oct3' => 104],
-            'JB'  => ['nama_router' => 'DIST-MIKROTIK-JB',  'ip_host' => '10.10.1.5', 'subnet_oct3' => 105],
-            'RSV' => ['nama_router' => 'DIST-MIKROTIK-06',  'ip_host' => '10.10.1.6', 'subnet_oct3' => 106],
+            'RO_POS1' => ['nama_router' => 'RO_POS1',  'ip_host' => '10.10.1.1', 'subnet_oct3' => 101],
+            'RO_FK' => ['nama_router' => 'RO_FK',    'ip_host' => '10.10.1.2', 'subnet_oct3' => 102],
+            'RO_GAYUH' => ['nama_router' => 'RO_GAYUH', 'ip_host' => '10.10.1.3', 'subnet_oct3' => 103],
         ];
 
         $distRouters = [];
@@ -117,7 +114,7 @@ class DatabaseSeeder extends Seeder
                         'ip_address' => $ip,
                     ],
                     [
-                        'queue_mk_id' => '*' . strtoupper(dechex($oct3 * 10 + ($oct4 - 189))),
+                        'queue_mk_id' => '*'.strtoupper(dechex($oct3 * 10 + ($oct4 - 189))),
                         'queue_name' => $queueName,
                         'status' => 'available',
                         'psb_order_id' => null,
@@ -127,19 +124,31 @@ class DatabaseSeeder extends Seeder
         }
 
         $salesData = [
-            ['kode_ip' => 'PAY', 'kode_pppoe' => '01', 'nama' => 'Sales PAY', 'router' => $distRouters['PAY']->id],
-            ['kode_ip' => 'KD',  'kode_pppoe' => '02', 'nama' => 'Sales KD',  'router' => $distRouters['KD']->id],
-            ['kode_ip' => 'PN',  'kode_pppoe' => '03', 'nama' => 'Sales PN',  'router' => $distRouters['PN']->id],
-            ['kode_ip' => 'JN',  'kode_pppoe' => '04', 'nama' => 'Sales JN',  'router' => $distRouters['JN']->id],
-            ['kode_ip' => 'JB',  'kode_pppoe' => '05', 'nama' => 'Sales JB',  'router' => $distRouters['JB']->id],
+            ['kode_ip' => 'LITE',   'kode_pppoe' => '01', 'nama' => 'GAYUH (Tanpa Sales)', 'router' => $distRouters['RO_POS1']->id],
+            ['kode_ip' => 'JB',     'kode_pppoe' => '02', 'nama' => 'MIFTAH',              'router' => $distRouters['RO_FK']->id],
+            ['kode_ip' => 'JN',     'kode_pppoe' => '03', 'nama' => 'JABRIK',              'router' => $distRouters['RO_FK']->id],
+            ['kode_ip' => 'PS',     'kode_pppoe' => '04', 'nama' => 'MAMAT S',             'router' => $distRouters['RO_POS1']->id],
+            ['kode_ip' => 'RK',     'kode_pppoe' => '05', 'nama' => 'ROKI',                'router' => $distRouters['RO_POS1']->id],
+            ['kode_ip' => 'KN',     'kode_pppoe' => '06', 'nama' => 'SUBUR',               'router' => $distRouters['RO_POS1']->id],
+            ['kode_ip' => 'SALES',  'kode_pppoe' => '07', 'nama' => 'MALIK',               'router' => $distRouters['RO_POS1']->id],
+            ['kode_ip' => 'PN',     'kode_pppoe' => '08', 'nama' => 'PAY',                 'router' => $distRouters['RO_FK']->id],
+            ['kode_ip' => 'SEWAN',  'kode_pppoe' => '09', 'nama' => 'HABUDIN',             'router' => $distRouters['RO_POS1']->id],
+            ['kode_ip' => 'SANURI', 'kode_pppoe' => '10', 'nama' => 'SANURI',              'router' => $distRouters['RO_POS1']->id],
+            ['kode_ip' => 'BOY',    'kode_pppoe' => '11', 'nama' => 'RW BOY',              'router' => $distRouters['RO_POS1']->id],
+            ['kode_ip' => 'ND',     'kode_pppoe' => '12', 'nama' => 'NADIH',               'router' => $distRouters['RO_POS1']->id],
+            ['kode_ip' => 'SALES',  'kode_pppoe' => '13', 'nama' => 'MALIK-KOLE',          'router' => $distRouters['RO_POS1']->id],
+            ['kode_ip' => 'PGB',    'kode_pppoe' => '14', 'nama' => 'PGB',                 'router' => $distRouters['RO_FK']->id],
+            ['kode_ip' => 'SN',     'kode_pppoe' => '15', 'nama' => 'SN',                  'router' => $distRouters['RO_FK']->id],
+            ['kode_ip' => 'FK',     'kode_pppoe' => '16', 'nama' => 'FKDS',                'router' => $distRouters['RO_FK']->id],
+            ['kode_ip' => 'KD',     'kode_pppoe' => '17', 'nama' => 'SUMARDI',              'router' => $distRouters['RO_FK']->id],
         ];
 
         foreach ($salesData as $s) {
             Sale::updateOrCreate(
-                ['kode_sales_ip' => $s['kode_ip']],
+                ['kode_sales_pppoe' => $s['kode_pppoe']],
                 [
                     'nama_sales' => $s['nama'],
-                    'kode_sales_pppoe' => $s['kode_pppoe'],
+                    'kode_sales_ip' => $s['kode_ip'],
                     'ip_router_id' => $s['router'],
                 ]
             );
@@ -170,6 +179,9 @@ class DatabaseSeeder extends Seeder
             ['nama_odp' => 'K04 C', 'kode_odp' => '04', 'status_upgrade' => 'belum_upgrade', 'last_seq' => 0],
             ['nama_odp' => 'K08 A', 'kode_odp' => '08', 'status_upgrade' => 'belum_upgrade', 'last_seq' => 0],
             ['nama_odp' => 'J03 A', 'kode_odp' => '03', 'status_upgrade' => 'belum_upgrade', 'last_seq' => 0],
+            ['nama_odp' => 'GSA-01', 'kode_odp' => '91', 'status_upgrade' => 'belum_upgrade', 'last_seq' => 0],
+            ['nama_odp' => 'GSB-01', 'kode_odp' => '92', 'status_upgrade' => 'belum_upgrade', 'last_seq' => 0],
+            ['nama_odp' => 'GSMA-01', 'kode_odp' => '93', 'status_upgrade' => 'belum_upgrade', 'last_seq' => 0],
         ];
 
         foreach ($odpsData as $o) {

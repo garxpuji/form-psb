@@ -21,7 +21,7 @@ class SaleController extends Controller
         $salesList = Sale::query()
             ->with('ipRouter')
             ->withCount('psbOrders')
-            ->orderBy('kode_sales_ip')
+            ->orderBy('kode_sales_pppoe')
             ->get();
 
         $distributionRouters = Router::query()

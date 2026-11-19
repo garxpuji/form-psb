@@ -5,7 +5,7 @@
     <div class="rounded-2xl border-[1.5px] border-[#4A7396] bg-white p-4 shadow-sm sm:p-5">
         <h1 class="text-[clamp(1.125rem,2vw,1.35rem)] font-extrabold text-[#06233B]">Master Data Router MikroTik</h1>
         <p class="mt-0.5 text-xs font-medium text-[#2C5270]">
-            Atur koneksi API untuk router utama PPPoE dan router distribusi Static IP per sales. Gunakan port <code class="rounded bg-[#D1FAE5] px-1.5 py-0.5 font-mono font-bold text-[#065F46]">8729</code> untuk mengaktifkan mode terenkripsi <code class="rounded bg-[#D1FAE5] px-1.5 py-0.5 font-mono font-bold text-[#065F46]">API-SSL (TLS)</code> secara otomatis.
+            Koneksi RouterOS API untuk PPPoE Server dan router distribusi Simple Queue. Port <code class="rounded bg-[#D1FAE5] px-1.5 py-0.5 font-mono font-bold text-[#065F46]">8729</code> otomatis menggunakan TLS.
         </p>
     </div>
 
@@ -119,71 +119,61 @@
                 <table class="min-w-full divide-y divide-[#7FA6C9] text-left text-sm">
                     <thead class="bg-[#072A47] text-xs font-bold uppercase tracking-wider text-white">
                         <tr>
-                            <th scope="col" class="px-4 py-3.5">Nama Router & Peran</th>
-                            <th scope="col" class="px-4 py-3.5">Alokasi Sales & Kode Queue</th>
-                            <th scope="col" class="px-4 py-3.5">Host & Interface</th>
-                            <th scope="col" class="px-4 py-3.5">Kapasitas Slot IP</th>
-                            <th scope="col" class="px-4 py-3.5 text-right">Tindakan</th>
+                            <th scope="col" class="px-4 py-3">Router</th>
+                            <th scope="col" class="px-4 py-3">Kode Queue / Sales</th>
+                            <th scope="col" class="px-4 py-3">Host &amp; Port</th>
+                            <th scope="col" class="px-4 py-3">Slot IP</th>
+                            <th scope="col" class="px-4 py-3 text-right">Aksi</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-[#7FA6C9] bg-white">
                         @forelse ($routers as $router)
                             <tr class="hover:bg-[#EDF5FC]/70">
-                                <td class="px-4 py-3">
+                                <td class="whitespace-nowrap px-4 py-3">
                                     <div class="font-extrabold text-[#06233B]">{{ $router->nama_router }}</div>
                                     <div class="mt-1">
                                         @if ($router->is_pppoe_server)
-                                            <span class="rounded border border-[#0284C7] bg-[#E0F2FE] px-2 py-0.5 font-mono text-xs font-bold text-[#075985]">
-                                                CENTRAL PPPoE SERVER
+                                            <span class="inline-flex items-center rounded border border-[#0284C7] bg-[#E0F2FE] px-2 py-0.5 font-sans text-[11px] font-bold text-[#075985]">
+                                                PPPoE Server
                                             </span>
                                         @else
-                                            <span class="rounded border border-[#D97706] bg-[#FEF3C7] px-2 py-0.5 font-mono text-xs font-bold text-[#78350F]">
-                                                DISTRIBUSI STATIC IP
+                                            <span class="inline-flex items-center rounded border border-[#D97706] bg-[#FEF3C7] px-2 py-0.5 font-sans text-[11px] font-bold text-[#78350F]">
+                                                Distribusi IP
                                             </span>
                                         @endif
                                     </div>
                                 </td>
                                 <td class="px-4 py-3 text-xs">
                                     @if ($router->is_pppoe_server)
-                                        <div class="rounded-lg border border-[#0284C7] bg-[#E0F2FE] p-2 text-xs">
-                                            <span class="font-extrabold text-[#075985]">Central PPPoE Server</span>
-                                            <p class="mt-0.5 text-[11px] text-[#0369A1]">Melayani seluruh ODP Upgrade &amp; sales (Kode PPPoE 01 - 17)</p>
-                                        </div>
+                                        <span class="inline-flex items-center rounded border border-[#0284C7] bg-[#E0F2FE] px-2.5 py-1 font-mono text-xs font-bold text-[#075985]">
+                                            Semua Sales (PPPoE 01–17)
+                                        </span>
                                     @elseif (str_contains(strtoupper($router->nama_router), 'POS1'))
-                                        <div class="space-y-1">
-                                            <div class="flex flex-wrap gap-1">
-                                                <span class="inline-flex items-center rounded bg-[#E0F2FE] px-1.5 py-0.5 font-mono text-xs font-extrabold text-[#005F99]" title="MAMAT S (PPPoE 04)">PS</span>
-                                                <span class="inline-flex items-center rounded bg-[#E0F2FE] px-1.5 py-0.5 font-mono text-xs font-extrabold text-[#005F99]" title="MALIK (07) & MALIK-KOLE (13)">SALES</span>
-                                                <span class="inline-flex items-center rounded bg-[#E0F2FE] px-1.5 py-0.5 font-mono text-xs font-extrabold text-[#005F99]" title="RW BOY (PPPoE 11)">BOY</span>
-                                                <span class="inline-flex items-center rounded bg-[#E0F2FE] px-1.5 py-0.5 font-mono text-xs font-extrabold text-[#005F99]" title="NADIH (PPPoE 12)">ND</span>
-                                                <span class="inline-flex items-center rounded bg-[#FEF3C7] px-1.5 py-0.5 font-mono text-xs font-extrabold text-[#92400E]" title="GAYUH (01) - Paket ≤20M">LITE (≤20M)</span>
-                                                <span class="inline-flex items-center rounded bg-[#E0F2FE] px-1.5 py-0.5 font-mono text-xs font-extrabold text-[#005F99]" title="SANURI (PPPoE 10)">SANURI</span>
-                                                <span class="inline-flex items-center rounded bg-[#D1FAE5] px-1.5 py-0.5 font-mono text-xs font-extrabold text-[#065F46]" title="HABUDIN (09) - ODP GSA/GSB">SEWAN</span>
-                                                <span class="inline-flex items-center rounded bg-[#D1FAE5] px-1.5 py-0.5 font-mono text-xs font-extrabold text-[#065F46]" title="HABUDIN (09) - ODP GSMA">SKM</span>
-                                                <span class="inline-flex items-center rounded bg-[#E0F2FE] px-1.5 py-0.5 font-mono text-xs font-extrabold text-[#005F99]" title="ROKI (PPPoE 05)">RK</span>
-                                                <span class="inline-flex items-center rounded bg-[#E0F2FE] px-1.5 py-0.5 font-mono text-xs font-extrabold text-[#005F99]" title="SUBUR (PPPoE 06)">KN</span>
-                                            </div>
-                                            <div class="text-[11px] font-medium text-[#2C5270]">Total: 10 alokasi queue prefix</div>
+                                        <div class="flex flex-wrap gap-1">
+                                            <span class="inline-flex items-center rounded bg-[#E0F2FE] px-1.5 py-0.5 font-mono text-xs font-bold text-[#005F99]">PS</span>
+                                            <span class="inline-flex items-center rounded bg-[#E0F2FE] px-1.5 py-0.5 font-mono text-xs font-bold text-[#005F99]">SALES</span>
+                                            <span class="inline-flex items-center rounded bg-[#E0F2FE] px-1.5 py-0.5 font-mono text-xs font-bold text-[#005F99]">BOY</span>
+                                            <span class="inline-flex items-center rounded bg-[#E0F2FE] px-1.5 py-0.5 font-mono text-xs font-bold text-[#005F99]">ND</span>
+                                            <span class="inline-flex items-center rounded bg-[#FEF3C7] px-1.5 py-0.5 font-mono text-xs font-bold text-[#92400E]">LITE</span>
+                                            <span class="inline-flex items-center rounded bg-[#E0F2FE] px-1.5 py-0.5 font-mono text-xs font-bold text-[#005F99]">SANURI</span>
+                                            <span class="inline-flex items-center rounded bg-[#D1FAE5] px-1.5 py-0.5 font-mono text-xs font-bold text-[#065F46]">SEWAN</span>
+                                            <span class="inline-flex items-center rounded bg-[#D1FAE5] px-1.5 py-0.5 font-mono text-xs font-bold text-[#065F46]">SKM</span>
+                                            <span class="inline-flex items-center rounded bg-[#E0F2FE] px-1.5 py-0.5 font-mono text-xs font-bold text-[#005F99]">RK</span>
+                                            <span class="inline-flex items-center rounded bg-[#E0F2FE] px-1.5 py-0.5 font-mono text-xs font-bold text-[#005F99]">KN</span>
                                         </div>
                                     @elseif (str_contains(strtoupper($router->nama_router), 'FK'))
-                                        <div class="space-y-1">
-                                            <div class="flex flex-wrap gap-1">
-                                                <span class="inline-flex items-center rounded bg-[#E0F2FE] px-1.5 py-0.5 font-mono text-xs font-extrabold text-[#005F99]" title="FKDS (PPPoE 16)">FK</span>
-                                                <span class="inline-flex items-center rounded bg-[#E0F2FE] px-1.5 py-0.5 font-mono text-xs font-extrabold text-[#005F99]" title="SN (PPPoE 15)">SN</span>
-                                                <span class="inline-flex items-center rounded bg-[#E0F2FE] px-1.5 py-0.5 font-mono text-xs font-extrabold text-[#005F99]" title="MIFTAH (PPPoE 02)">JB</span>
-                                                <span class="inline-flex items-center rounded bg-[#E0F2FE] px-1.5 py-0.5 font-mono text-xs font-extrabold text-[#005F99]" title="JABRIK (PPPoE 03)">JN</span>
-                                                <span class="inline-flex items-center rounded bg-[#E0F2FE] px-1.5 py-0.5 font-mono text-xs font-extrabold text-[#005F99]" title="SUMARDI (PPPoE 17)">KD</span>
-                                                <span class="inline-flex items-center rounded bg-[#E0F2FE] px-1.5 py-0.5 font-mono text-xs font-extrabold text-[#005F99]" title="PAY (PPPoE 08)">PN</span>
-                                                <span class="inline-flex items-center rounded bg-[#E0F2FE] px-1.5 py-0.5 font-mono text-xs font-extrabold text-[#005F99]" title="PGB (PPPoE 14)">PGB</span>
-                                            </div>
-                                            <div class="text-[11px] font-medium text-[#2C5270]">Total: 7 alokasi queue prefix</div>
+                                        <div class="flex flex-wrap gap-1">
+                                            <span class="inline-flex items-center rounded bg-[#E0F2FE] px-1.5 py-0.5 font-mono text-xs font-bold text-[#005F99]">FK</span>
+                                            <span class="inline-flex items-center rounded bg-[#E0F2FE] px-1.5 py-0.5 font-mono text-xs font-bold text-[#005F99]">SN</span>
+                                            <span class="inline-flex items-center rounded bg-[#E0F2FE] px-1.5 py-0.5 font-mono text-xs font-bold text-[#005F99]">JB</span>
+                                            <span class="inline-flex items-center rounded bg-[#E0F2FE] px-1.5 py-0.5 font-mono text-xs font-bold text-[#005F99]">JN</span>
+                                            <span class="inline-flex items-center rounded bg-[#E0F2FE] px-1.5 py-0.5 font-mono text-xs font-bold text-[#005F99]">KD</span>
+                                            <span class="inline-flex items-center rounded bg-[#E0F2FE] px-1.5 py-0.5 font-mono text-xs font-bold text-[#005F99]">PN</span>
+                                            <span class="inline-flex items-center rounded bg-[#E0F2FE] px-1.5 py-0.5 font-mono text-xs font-bold text-[#005F99]">PGB</span>
                                         </div>
                                     @elseif (str_contains(strtoupper($router->nama_router), 'GAYUH'))
-                                        <div class="space-y-1">
-                                            <div class="flex flex-wrap gap-1">
-                                                <span class="inline-flex items-center rounded bg-[#FEE2E2] px-2 py-0.5 font-mono text-xs font-extrabold text-[#991B1B]" title="GAYUH (01) - Paket >20M">GAMER (&gt;20M)</span>
-                                            </div>
-                                            <div class="text-[11px] font-medium text-[#2C5270]">Khusus pelanggan tanpa sales &gt;20M</div>
+                                        <div class="flex flex-wrap gap-1">
+                                            <span class="inline-flex items-center rounded bg-[#FEE2E2] px-2 py-0.5 font-mono text-xs font-bold text-[#991B1B]">GAMER (&gt;20M)</span>
                                         </div>
                                     @else
                                         <div class="flex flex-wrap gap-1">
@@ -195,22 +185,20 @@
                                         </div>
                                     @endif
                                 </td>
-                                <td class="px-4 py-3 text-xs">
+                                <td class="whitespace-nowrap px-4 py-3 text-xs">
                                     <div class="font-mono text-xs font-bold text-[#005F99]">
                                         {{ $router->ip_host }}:{{ $router->api_port }}
                                     </div>
                                     <div class="mt-0.5 text-[11px] text-[#2C5270]">
-                                        User: <span class="font-mono font-semibold text-[#06233B]">{{ $router->username }}</span>
+                                        {{ $router->username }}
+                                        @if (! $router->is_pppoe_server && $router->lan_interface)
+                                            · <span class="font-mono">{{ $router->lan_interface }}</span>
+                                        @endif
                                     </div>
-                                    @if (! $router->is_pppoe_server)
-                                        <div class="mt-0.5 text-[11px] text-[#2C5270]">
-                                            LAN: <span class="font-mono font-semibold text-[#06233B]">{{ $router->lan_interface ?? '-' }}</span>
-                                        </div>
-                                    @endif
                                 </td>
-                                <td class="px-4 py-3 text-xs">
+                                <td class="whitespace-nowrap px-4 py-3 text-xs">
                                     @if ($router->is_pppoe_server)
-                                        <span class="font-medium text-[#2C5270]">Khusus PPPoE Secret</span>
+                                        <span class="font-medium text-[#2C5270]">Khusus PPPoE</span>
                                     @else
                                         <div class="font-mono font-bold {{ (int) $router->available_slots_count === 0 ? 'text-[#991B1B]' : 'text-[#065F46]' }}">{{ $router->available_slots_count }} Kosong</div>
                                         <div class="font-mono text-[#2C5270]">{{ $router->used_slots_count }} Terpakai</div>

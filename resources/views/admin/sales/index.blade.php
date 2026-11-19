@@ -106,10 +106,8 @@
                             <td class="px-4 py-3 text-xs font-semibold text-[#06233B]">
                                 @if ($sale->kode_sales_pppoe === '01')
                                     <span class="font-bold text-[#075985]">RO_POS1 (≤20M) / RO_GAYUH (&gt;20M)</span>
-                                    <div class="text-[11px] text-[#2C5270]">Routing otomatis per paket</div>
                                 @elseif ($sale->kode_sales_pppoe === '09')
                                     <span class="font-bold text-[#065F46]">RO_POS1</span>
-                                    <div class="text-[11px] text-[#2C5270]">Prefix otomatis per ODP</div>
                                 @else
                                     <span class="font-bold">{{ $sale->ipRouter?->nama_router ?? '-' }}</span>
                                     <span class="font-mono text-[#2C5270]">({{ $sale->ipRouter?->ip_host }})</span>
